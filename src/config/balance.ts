@@ -56,7 +56,7 @@ export const STAT_SCALE = {
   /** Drehrate in rad/s bei langsamem Tempo. */
   turnRate: [0, 1.8, 2.0, 2.3, 2.6, 3.0],
   /** Bodenhaftung in Kurven (m/s²): Drehrate höchstens Haftung / Tempo. Kleiner = grösserer Kurvenradius. */
-  grip: [0, 7.0, 8.0, 9.2, 10.4, 11.5],
+  grip: [0, 7.0, 8.5, 9.2, 10.4, 11.5],
 };
 
 export const ENERGY = {
@@ -101,11 +101,18 @@ export const BODY_RADIUS = {
 } as const;
 
 /** Computergegner. */
-export const AI = {
+export const AI: {
+  levels: Record<'leicht' | 'mittel' | 'schwer', { lineNoise: number; speedFactor: number; jumpError: number; jumpMissChance: number; boltSeek: number; powerSkill: 'zufall' | 'gezielt' | 'taktisch'; dodgeQuake: number; avoidHazards: boolean }>;
+  lookAheadBase: number;
+  lookAheadPerSpeed: number;
+  boltSeekEnergy: number;
+  steerDeadzone: number;
+  rubberBandPerPlace: number;
+} = {
   levels: {
-    leicht: { lineNoise: 2.0, speedFactor: 0.9, jumpError: 0.14, jumpMissChance: 0.25, boltSeek: 0.3 },
-    mittel: { lineNoise: 0.9, speedFactor: 0.97, jumpError: 0.06, jumpMissChance: 0.06, boltSeek: 0.85 },
-    schwer: { lineNoise: 0.35, speedFactor: 1.0, jumpError: 0.03, jumpMissChance: 0.01, boltSeek: 1 },
+    leicht: { lineNoise: 2.0, speedFactor: 0.9, jumpError: 0.14, jumpMissChance: 0.25, boltSeek: 0.3, powerSkill: 'zufall', dodgeQuake: 0, avoidHazards: false },
+    mittel: { lineNoise: 0.9, speedFactor: 0.97, jumpError: 0.06, jumpMissChance: 0.06, boltSeek: 0.85, powerSkill: 'gezielt', dodgeQuake: 0.45, avoidHazards: false },
+    schwer: { lineNoise: 0.35, speedFactor: 1.0, jumpError: 0.03, jumpMissChance: 0.01, boltSeek: 1, powerSkill: 'taktisch', dodgeQuake: 0.9, avoidHazards: true },
   },
   /** Vorausschau zur Ideallinie: fester Teil + Anteil der Geschwindigkeit. */
   lookAheadBase: 6,
@@ -115,7 +122,7 @@ export const AI = {
   /** Lenk-Toleranz in rad (verhindert Zittern). */
   steerDeadzone: 0.035,
   /** Leichte, einstellbare Aufholhilfe: zusätzliches Tempo pro Platz Rückstand zum besten Menschen. */
-  rubberBandPerPlace: 0.0,
+  rubberBandPerPlace: 0.008,
 };
 
 /** Kamera und Darstellung. */
@@ -132,4 +139,68 @@ export const VIEW = {
   shadowMapSize: { hoch: 2048, mittel: 1024, niedrig: 0 },
   /** Anteil der Dekoration (Bäume usw.) je Grafikstufe. */
   decorDensity: { hoch: 1, mittel: 0.7, niedrig: 0.4 },
+};
+
+/** Persönliche Icons und Aufholhilfe. */
+export const ICONS = {
+  /** So viele Icons laden die Superkraft. */
+  needed: 3,
+  /** Abholradius */
+  radius: 1.8,
+  /** Nach so vielen Sekunden erscheint ein eingesammeltes Icon für dieses Tier wieder. */
+  respawn: 10,
+  /**
+   * Aufholhilfe: Anzahl zusätzlicher Icon-Punkte pro Runde, die ein Tier je nach Platz sieht
+   * (Index = Platz 1–8). Platz 1 sieht nur die normalen Punkte.
+   */
+  extraByPlace: [0, 0, 1, 2, 3, 4, 5, 7, 9],
+  /** Maximale Anzahl zusätzlicher Punkte (werden automatisch über die Runde verteilt). */
+  extraMax: 9,
+};
+
+/** Superkräfte: Dauer, Stärke, Reichweite. */
+export const POWERS = {
+  turboGalopp: { duration: 4, boost: 1.6 },
+  sprungAttacke: { range: 25, leapTime: 0.6, stun: 2, selfBoost: 1.25, selfBoostTime: 1.5 },
+  apfelRegen: { duration: 3, count: 5, radius: 1.3, spin: 1.2, lifetime: 20, spread: [0, -2.6, 2.6, -1.3, 1.3] },
+  schutzpflaster: { duration: 5 },
+  wirbelsturm: { duration: 3, radius: 8, stun: 1.5 },
+  maeusejagd: { duration: 5, boost: 1.35 },
+  erdbeben: { warning: 0.5, radius: 40, stun: 1.5 },
+  miauSchrei: { range: 30, halfAngle: 0.4, stun: 2, waveTime: 0.6 },
+  spuernase: { duration: 4, boost: 1.15, trailLength: 60 },
+  hamsterkugel: { duration: 5, boost: 1.2, pushStrength: 2.5 },
+};
+
+/** Wirkung von «gestoppt» und «Rutschen». */
+export const EFFECTS = {
+  /** Tempo-Faktor während des Rutschens (Apfel) */
+  spinSpeed: 0.3,
+  /** Kurzer Schutz nach einem Treffer, damit man nicht sofort wieder getroffen wird */
+  hitImmunity: 1.0,
+};
+
+/** Allgemeine Items aus den Item-Kisten (wirken sofort beim Einsammeln). */
+export const ITEMS = {
+  boxRadius: 1.6,
+  boxRespawn: 3,
+  turbo: { duration: 2.5, boost: 1.4 },
+  schnecke: { duration: 3, factor: 0.6 },
+  schild: { duration: 5 },
+  matsch: { duration: 1.5, factor: 0.3, radius: 1.4, lifetime: 25, ownerImmunity: 1.5 },
+  /**
+   * Wahrscheinlichkeiten [turbo, schnecke, schild, matsch] je Platz (Index 1–8).
+   * Hinten eher hilfreiche Items, vorne eher die Falle.
+   */
+  odds: [
+    [0, 0, 0, 0],
+    [0.1, 0.0, 0.25, 0.65],
+    [0.2, 0.1, 0.3, 0.4],
+    [0.3, 0.2, 0.25, 0.25],
+    [0.35, 0.3, 0.2, 0.15],
+    [0.4, 0.35, 0.15, 0.1],
+    [0.45, 0.4, 0.1, 0.05],
+    [0.5, 0.4, 0.1, 0.0],
+    [0.55, 0.4, 0.05, 0.0],
+  ],
 };

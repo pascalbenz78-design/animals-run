@@ -112,3 +112,57 @@ export function blobTexture(inner = 'rgba(0,0,0,0.55)'): THREE.CanvasTexture {
   g.fillRect(0, 0, 64, 64);
   return finish(c, false);
 }
+
+const emojiCache = new Map<string, THREE.CanvasTexture>();
+
+/** Emoji als Textur (für Icons, Items und Symbole über den Tieren). */
+export function emojiTexture(emoji: string, ring = false): THREE.CanvasTexture {
+  const key = emoji + (ring ? '#' : '');
+  const cached = emojiCache.get(key);
+  if (cached) return cached;
+  const [c, g] = canvas(128, 128);
+  if (ring) {
+    g.fillStyle = 'rgba(255,255,255,0.92)';
+    g.beginPath();
+    g.arc(64, 64, 60, 0, Math.PI * 2);
+    g.fill();
+    g.lineWidth = 7;
+    g.strokeStyle = '#ff7a1a';
+    g.stroke();
+  }
+  g.font = '78px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText(emoji, 64, 70);
+  const t = finish(c, false);
+  emojiCache.set(key, t);
+  return t;
+}
+
+/** Item-Kiste: bunte Seiten mit Pfoten-Symbol. */
+export function pawBoxTexture(): THREE.CanvasTexture {
+  const [c, g] = canvas(128, 128);
+  const grad = g.createLinearGradient(0, 0, 128, 128);
+  grad.addColorStop(0, '#ffcf3f');
+  grad.addColorStop(1, '#ff7a1a');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 128, 128);
+  g.lineWidth = 10;
+  g.strokeStyle = '#fff6d8';
+  g.strokeRect(5, 5, 118, 118);
+  g.fillStyle = '#5a2a00';
+  g.beginPath();
+  g.ellipse(64, 78, 24, 20, 0, 0, Math.PI * 2);
+  g.fill();
+  for (const [x, y] of [
+    [36, 50],
+    [54, 36],
+    [74, 36],
+    [92, 50],
+  ]) {
+    g.beginPath();
+    g.ellipse(x, y, 9, 11, 0, 0, Math.PI * 2);
+    g.fill();
+  }
+  return finish(c, false);
+}

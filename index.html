@@ -33,7 +33,13 @@
       <!-- Tierwahl -->
       <section id="scr-animal" class="screen hidden">
         <h2 data-t="menu.chooseAnimal"></h2>
-        <div id="animal-cards" class="cards"></div>
+        <div class="pick">
+          <div class="preview-box"><canvas id="preview"></canvas></div>
+          <div class="pick-right">
+            <div id="animal-grid" class="animal-grid"></div>
+            <div id="animal-info" class="panel info"></div>
+          </div>
+        </div>
         <div class="row">
           <button class="btn" data-go="main" data-t="menu.back"></button>
           <button class="btn primary" data-go="track" data-t="menu.next"></button>
@@ -84,6 +90,7 @@
 
       <!-- Rennen: HUD -->
       <section id="hud" class="hidden">
+        <div id="speedlines"></div>
         <div class="hud-tl">
           <div class="place"><span id="hud-place">1.</span><small>/8</small></div>
           <div class="hud-box">
@@ -95,6 +102,12 @@
           <span class="bolt-ico">⚡</span>
           <div class="bar"><div id="hud-energy-fill"></div></div>
         </div>
+        <div id="hud-power" class="hud-power">
+          <span id="hud-power-ico" class="ico">🥕</span>
+          <span id="hud-power-slots" class="slots"><i></i><i></i><i></i></span>
+          <span id="hud-power-key" class="key">E</span>
+        </div>
+        <div id="itempop"></div>
         <canvas id="minimap" width="180" height="180"></canvas>
         <button id="btn-pause" class="btn icon pause-btn" aria-label="Pause">❚❚</button>
         <div id="countdown"></div>
@@ -107,11 +120,12 @@
             <button class="tbtn" id="t-right">▶</button>
           </div>
           <div class="tright">
+            <button class="tbtn small" id="t-power" data-t="hud.power"></button>
             <button class="tbtn small" id="t-jump" data-t="hud.jump"></button>
             <button class="tbtn run" id="t-run" data-t="hud.run"></button>
           </div>
         </div>
-        <div id="key-hints" class="hidden">W/↑ Lauf · A/D ◀ ▶ Lenken · Leertaste Sprung · Esc Pause</div>
+        <div id="key-hints" class="hidden">W/↑ Lauf · A/D ◀ ▶ Lenken · Leertaste Sprung · E Superkraft · Esc Pause</div>
       </section>
 
       <!-- Pause -->

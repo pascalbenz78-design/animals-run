@@ -27,8 +27,13 @@ for (const data of TRACKS) {
   raceTimes = [];
   for (let r = 0; r < races; r++) {
     const entrants: Entrant[] = [];
-    for (let i = 0; i < 8; i++) entrants.push({ animalId: ANIMALS[(i + r) % ANIMALS.length].id, human: false, aiLevel: level });
-    const sim = new RaceSim(track, entrants);
+    // Jedes Tier höchstens einmal pro Rennen; reihum wechseln, wer fehlt und wer vorne startet
+    const ids = ANIMALS.map((a) => a.id);
+    for (let i = 0; i < 8; i++) entrants.push({ animalId: ids[(i * 3 + r * 7) % ids.length], human: false, aiLevel: level });
+    const uniq = [...new Set(entrants.map((e) => e.animalId))];
+    for (const id of ids) if (uniq.length < 8 && !uniq.includes(id)) uniq.push(id);
+    entrants.splice(0, 8, ...uniq.slice(0, 8).map((id) => ({ animalId: id, human: false, aiLevel: level })));
+    const sim = new RaceSim(track, entrants, undefined, r + 1);
     const drivers = sim.animals.map((_, i) => new AiDriver(i, r + 1));
     let guard = 0;
     while (sim.phase !== 'done' && guard++ < 60 * 600) {
@@ -51,6 +56,7 @@ for (const data of TRACKS) {
       }
     }
     if (guard >= 60 * 600) console.log('WARNUNG: Rennen nicht beendet (Zeitlimit)');
+    if (sim.time > 200) console.log(`WARNUNG: langes Rennen (${sim.time.toFixed(0)} s), Startwert ${r + 1}`);
   }
   raceTimes.sort((a, b) => a - b);
   const med = raceTimes[Math.floor(raceTimes.length / 2)];

@@ -1,10 +1,10 @@
 /** Anzeige während des Rennens: Platz, Runde, Zeit, Energie, Minikarte, Countdown, Meldungen. */
-import { ENERGY } from '../config/balance';
+import { ENERGY, ICONS } from '../config/balance';
 import { T } from '../config/texts';
 import { getAnimal } from '../animals/animals';
 import type { RaceSim } from '../game/simulation';
 import { wrapAngle } from '../game/track';
-import type { SimEvent } from '../game/types';
+import { ITEM_IDS, type SimEvent } from '../game/types';
 import { submitLap } from '../storage';
 
 const $ = <E extends HTMLElement>(id: string) => document.getElementById(id) as E;
@@ -25,6 +25,13 @@ export class Hud {
   private readonly toastEl = $('toast');
   private readonly warn = $('warn');
   private readonly lapInfo = $('lapinfo');
+  private readonly power = $('hud-power');
+  private readonly powerSlots = $('hud-power-slots');
+  private readonly powerBtn = $('t-power');
+  private readonly itemPop = $('itempop');
+  private readonly speedLines = $('speedlines');
+  private lastIcons = -1;
+  private lastPowerState = '';
   private readonly map = $<HTMLCanvasElement>('minimap');
   private readonly ctx = this.map.getContext('2d')!;
   private mapPath: Path2D | null = null;
@@ -41,6 +48,34 @@ export class Hud {
     this.toastEl.className = '';
     this.warn.textContent = '';
     this.lapInfo.className = '';
+    this.itemPop.className = '';
+    $('hud-power-ico').textContent = getAnimal(sim.animals[me].animalId).icon;
+    this.power.title = T.powers[sim.animals[me].power][0];
+  }
+
+  /** Superkraft-Anzeige: Tier-Icon und gesammelte Icons (0/3); leuchtet, wenn bereit. */
+  private updatePower() {
+    const a = this.sim.animals[this.me];
+    if (a.icons !== this.lastIcons) {
+      this.lastIcons = a.icons;
+      this.powerSlots.querySelectorAll('i').forEach((el, i) => el.classList.toggle('on', i < a.icons));
+    }
+    const state = a.active ? 'active' : a.icons >= ICONS.needed ? 'ready' : '';
+    if (state !== this.lastPowerState) {
+      this.lastPowerState = state;
+      this.power.classList.toggle('ready', state === 'ready');
+      this.power.classList.toggle('active', state === 'active');
+      this.powerBtn.classList.toggle('ready', state === 'ready');
+    }
+    this.speedLines.classList.toggle('on', a.boost > 0 && !a.finished);
+  }
+
+  private popItem(index: number) {
+    const [emoji, name] = T.items[ITEM_IDS[index]];
+    this.itemPop.innerHTML = `<span class="big">${emoji}</span>${name}`;
+    this.itemPop.className = '';
+    void this.itemPop.offsetWidth;
+    this.itemPop.className = 'show';
   }
 
   /** Nach jeder Runde: Rundenzeit, eigene Bestzeit und bisherige Bestzeit anzeigen. */
@@ -130,6 +165,7 @@ export class Hud {
     const low = a.energy < ENERGY.slowThreshold;
     this.energy.classList.toggle('low', low);
     this.drawMap();
+    this.updatePower();
 
     // Falsche Richtung?
     const trackHeading = this.sim.track.headingAt(a.s);
@@ -159,6 +195,10 @@ export class Hud {
     if (e.type === 'countdown') this.showCountdown(String(e.value));
     else if (e.type === 'go') this.showCountdown(T.hud.go);
     else if (e.animal === this.me) {
+      if (e.type === 'item') this.popItem(e.value!);
+      else if (e.type === 'stunned') this.toast(T.stunned);
+      else if (e.type === 'powerReady') this.toast(T.powerReady);
+      else if (e.type === 'power') this.toast(T.powers[this.sim.animals[this.me].power][0] + '!');
       if (e.type === 'lap' || e.type === 'finish') this.showLapTime(e.type === 'lap' ? e.value! - 1 : this.sim.laps);
       if (e.type === 'lap') this.toast(e.value === this.sim.laps ? T.hud.lastLap : `${T.hud.lap} ${e.value}/${this.sim.laps}`);
       else if (e.type === 'finish') this.toast(`${T.hud.finish} ${this.sim.animals[this.me].place}. ${T.hud.place}`);

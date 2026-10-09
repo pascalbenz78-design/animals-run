@@ -1,6 +1,7 @@
 /** Menü-Bildschirme: Texte einsetzen, Bildschirme wechseln, Karten und Auswahlfelder bauen. */
 import { T } from '../config/texts';
-import { ANIMALS, SPECIES_NAME, SPECIES_STATS, type BaseStats } from '../animals/animals';
+import { ANIMALS, getAnimal, SPECIES_STATS, type BaseStats } from '../animals/animals';
+import { AnimalPreview } from './preview';
 import type { ResultRow } from '../game/types';
 import { TRACKS } from '../tracks';
 import { load } from '../storage';
@@ -57,27 +58,45 @@ function statRows(s: BaseStats): string {
     .join('');
 }
 
-export function buildAnimalCards(selected: string, onSelect: (id: string) => void) {
-  const box = $('animal-cards');
-  box.innerHTML = '';
+let preview: AnimalPreview | null = null;
+
+/** Zeigt Name, Tierart, Werte und Superkraft des gewählten Tiers. */
+function showAnimalInfo(id: string) {
+  const a = getAnimal(id);
+  const [powerName, powerText] = T.powers[a.power];
+  $('animal-info').innerHTML = `
+    <h3>${a.name} <span class="species">${T.species[a.species]}</span></h3>
+    <div class="desc">${T.animals[a.id]}</div>
+    ${statRows(SPECIES_STATS[a.species])}
+    <div class="power"><span class="power-ico">${a.icon}</span><div><b>${powerName}</b><br>${powerText}</div></div>`;
+  preview?.show(id);
+}
+
+/** Tierwahl: Raster mit allen Tieren, Info-Feld und 3D-Vorschau. `taken` = schon vergeben (Mehrspieler). */
+export function buildAnimalPicker(selected: string, onSelect: (id: string) => void, taken: string[] = []) {
+  if (!preview) preview = new AnimalPreview($<HTMLCanvasElement>('preview'));
+  const grid = $('animal-grid');
+  grid.innerHTML = '';
   for (const a of ANIMALS) {
-    const card = document.createElement('button');
-    card.className = 'card' + (a.id === selected ? ' sel' : '');
-    const body = '#' + a.appearance.body.toString(16).padStart(6, '0');
-    const mane = '#' + a.appearance.mane.toString(16).padStart(6, '0');
-    card.innerHTML = `
-      <h3>${a.name}<span>${a.icon}</span></h3>
-      <div class="species">${SPECIES_NAME[a.species]}</div>
-      <div class="swatch" style="background: linear-gradient(110deg, ${body} 0 62%, ${mane} 62% 100%)">${a.species === 'pferd' ? '🐴' : '🐱'}</div>
-      <div class="desc">${a.description}</div>
-      ${statRows(SPECIES_STATS[a.species])}`;
-    card.addEventListener('click', () => {
-      box.querySelectorAll('.card').forEach((c) => c.classList.remove('sel'));
-      card.classList.add('sel');
+    const b = document.createElement('button');
+    b.className = 'pick-btn' + (a.id === selected ? ' sel' : '');
+    b.disabled = taken.includes(a.id);
+    b.style.setProperty('--c', a.uiColor);
+    b.innerHTML = `<span class="pick-ico">${a.icon}</span><span>${a.name}</span>`;
+    b.addEventListener('click', () => {
+      grid.querySelectorAll('.pick-btn').forEach((x) => x.classList.remove('sel'));
+      b.classList.add('sel');
       onSelect(a.id);
+      showAnimalInfo(a.id);
     });
-    box.appendChild(card);
+    grid.appendChild(b);
   }
+  showAnimalInfo(selected);
+  preview.start();
+}
+
+export function stopAnimalPreview() {
+  preview?.stop();
 }
 
 export function buildTrackCards(selected: string, onSelect: (id: string) => void) {

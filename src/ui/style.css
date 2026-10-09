@@ -712,3 +712,272 @@ body.autorun .tbtn.small {
     opacity: 0;
   }
 }
+
+/* Tierwahl */
+.pick {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+  justify-content: center;
+  width: min(1050px, 100%);
+}
+.preview-box {
+  flex: 0 0 auto;
+  width: min(360px, 38vw);
+  aspect-ratio: 1 / 1.05;
+  background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.12) 70%);
+  border: 3px solid var(--ink);
+  border-radius: 24px;
+  overflow: hidden;
+  touch-action: none;
+}
+#preview {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+}
+.pick-right {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 600px;
+}
+.animal-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+.pick-btn {
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 2px;
+  border-radius: 14px;
+  border: 3px solid var(--ink);
+  background: var(--cream);
+  color: var(--ink);
+  box-shadow: inset 0 -6px 0 var(--c), 0 3px 0 var(--ink);
+  cursor: pointer;
+}
+.pick-btn.sel {
+  background: #ffd23f;
+  transform: translateY(-3px);
+  box-shadow: inset 0 -6px 0 var(--c), 0 0 0 3px var(--orange), 0 5px 0 var(--ink);
+}
+.pick-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.pick-ico {
+  font-size: 26px;
+  line-height: 1.1;
+}
+.panel.info {
+  padding: 10px 16px;
+}
+.info h3 {
+  margin: 0;
+  font-size: 26px;
+}
+.info .species {
+  font-size: 15px;
+  opacity: 0.7;
+}
+.info .desc {
+  font-size: 14px;
+  margin: 2px 0 6px;
+}
+.power {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: rgba(255, 122, 26, 0.15);
+  font-size: 14px;
+}
+.power-ico {
+  font-size: 32px;
+}
+
+/* Superkraft-Anzeige im Rennen */
+.hud-power {
+  position: absolute;
+  top: 118px;
+  left: calc(12px + var(--safe-l));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 248, 232, 0.88);
+  border: 3px solid var(--ink);
+  border-radius: 16px;
+  padding: 3px 10px 3px 6px;
+  font-weight: 800;
+}
+.hud-power .ico {
+  font-size: 30px;
+  line-height: 1;
+}
+.hud-power .slots {
+  display: flex;
+  gap: 4px;
+}
+.hud-power .slots i {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  background: #e3d8c3;
+}
+.hud-power .slots i.on {
+  background: var(--orange);
+}
+.hud-power .key {
+  font-size: 14px;
+  opacity: 0.75;
+}
+.hud-power.ready {
+  background: #ffd23f;
+  animation: glow 0.9s ease-in-out infinite;
+}
+.hud-power.active {
+  background: #c7f0ff;
+}
+@keyframes glow {
+  50% {
+    box-shadow: 0 0 0 6px rgba(255, 210, 63, 0.55), 0 0 22px #ffd23f;
+  }
+}
+/* Superkraft-Taste über der Lauf-Taste */
+#t-power {
+  position: absolute;
+  right: calc(28px + var(--safe-r));
+  bottom: calc(150px + var(--safe-b));
+  font-size: 14px;
+  margin: 0;
+  opacity: 0.5;
+}
+#t-power.ready {
+  opacity: 1;
+  background: rgba(255, 210, 63, 0.95);
+  animation: glow 0.9s ease-in-out infinite;
+}
+body.autorun #t-power {
+  bottom: calc(18px + var(--safe-b));
+  right: calc(120px + var(--safe-r));
+}
+
+/* Kurz eingeblendetes Item und Meldungen */
+#itempop {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 248, 232, 0.94);
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  padding: 4px 16px 4px 8px;
+  font-weight: 900;
+  font-size: 20px;
+  opacity: 0;
+}
+#itempop .big {
+  font-size: 40px;
+}
+#itempop.show {
+  animation: itempop 1.8s ease-out forwards;
+}
+@keyframes itempop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -20px) scale(0.6);
+  }
+  12% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1.1);
+  }
+  20%,
+  80% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Geschwindigkeitslinien beim Schub */
+#speedlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s;
+  background: repeating-conic-gradient(from 0deg at 50% 55%, rgba(255, 255, 255, 0.55) 0deg 1.2deg, transparent 1.2deg 9deg);
+  -webkit-mask-image: radial-gradient(circle at 50% 55%, transparent 32%, black 75%);
+  mask-image: radial-gradient(circle at 50% 55%, transparent 32%, black 75%);
+}
+#speedlines.on {
+  opacity: 0.55;
+  animation: lines 0.25s linear infinite;
+}
+@keyframes lines {
+  50% {
+    transform: scale(1.04);
+  }
+}
+
+@media (max-height: 500px) {
+  .preview-box {
+    width: min(230px, 32vw);
+  }
+  .pick-ico {
+    font-size: 20px;
+  }
+  .pick-btn {
+    font-size: 12px;
+    padding: 3px 2px;
+  }
+  .info h3 {
+    font-size: 19px;
+  }
+  .info .desc {
+    display: none;
+  }
+  .info .stat {
+    font-size: 11px;
+    grid-template-columns: 96px 1fr;
+  }
+  .power {
+    font-size: 12px;
+    margin-top: 4px;
+    padding: 3px 8px;
+  }
+  .power-ico {
+    font-size: 22px;
+  }
+  .pick {
+    gap: 10px;
+  }
+  .hud-power {
+    top: 90px;
+  }
+  .hud-power .ico {
+    font-size: 22px;
+  }
+  #t-power {
+    bottom: calc(124px + var(--safe-b));
+    right: calc(30px + var(--safe-r));
+  }
+}

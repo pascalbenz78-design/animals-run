@@ -21,7 +21,7 @@ export const BAUERNHOF: TrackData = {
     [-58, 24, 0],
     [-30, 4, 0],
   ],
-  targetLength: 560,
+  targetLength: 500,
   width: 15,
   theme: {
     skyTop: 0x4a9be8,
@@ -58,6 +58,16 @@ export const BAUERNHOF: TrackData = {
     { s: 0.225, ds: [-4.4, -1.5, 1.5, 4.4] },
     { s: 0.68, ds: [-5.5, -3.3, -1.1, 1.1, 3.3, 5.5] },
     { s: 0.705, ds: [-4.4, -1.5, 1.5, 4.4] },
+  ],
+  icons: [
+    { s: 0.16, d: -2 },
+    { s: 0.47, d: 2.5 },
+    { s: 0.9, d: -1.5 },
+  ],
+  items: [
+    { s: 0.035, ds: [-4.5, -1.5, 1.5, 4.5] },
+    { s: 0.37, ds: [-4.5, -1.5, 1.5, 4.5] },
+    { s: 0.6, ds: [-4.5, -1.5, 1.5, 4.5] },
   ],
   landmarks: [
     { type: 'stall', s: 0.07, d: 34 },

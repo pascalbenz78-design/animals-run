@@ -48,6 +48,18 @@ export interface BoltStationDef {
   ds: number[];
 }
 
+/** Icon-Punkt (jedes Tier sieht dort sein eigenes Icon) */
+export interface IconPointDef {
+  s: number;
+  d: number;
+}
+
+/** Reihe Item-Kisten quer über die Strecke */
+export interface ItemRowDef {
+  s: number;
+  ds: number[];
+}
+
 export type LandmarkType = 'stall' | 'silo' | 'teich' | 'traktor' | 'tribuene' | 'windrad';
 
 export interface LandmarkDef {
@@ -84,6 +96,9 @@ export interface TrackData {
   bales: BaleDef[];
   mud: MudDef[];
   bolts: BoltStationDef[];
+  /** Normale Icon-Punkte pro Runde (die Aufholhilfe ergänzt automatisch weitere) */
+  icons: IconPointDef[];
+  items: ItemRowDef[];
   landmarks: LandmarkDef[];
   decor: DecorDef;
 }

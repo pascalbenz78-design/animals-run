@@ -19,7 +19,8 @@ import { settings, submitTime, updateSettings } from './storage';
 import { Hud } from './ui/hud';
 import {
   applyTexts,
-  buildAnimalCards,
+  buildAnimalPicker,
+  stopAnimalPreview,
   buildControlsTable,
   buildResults,
   buildTrackCards,
@@ -70,22 +71,23 @@ function buildSession(trackId: string, humanAnimal: string | null, level: AiLeve
   const track = new Track(data);
   const entrants: Entrant[] = [];
   if (humanAnimal) entrants.push({ animalId: humanAnimal, human: true, aiLevel: level });
-  // Computergegner: abwechselnd die anderen Tiere (Phase 1: Lenni und Aramis)
-  const others = ANIMALS.map((a) => a.id).filter((id) => id !== humanAnimal);
-  const pool = others.length ? others : ANIMALS.map((a) => a.id);
-  let k = 0;
-  while (entrants.length < RACE.animalsPerRace) {
-    const id = k % 2 === 0 || !humanAnimal ? pool[k % pool.length] : humanAnimal;
-    entrants.push({ animalId: id, human: false, aiLevel: level });
-    k++;
+  // Computergegner: zufällig aus den übrigen Tieren, jedes Tier nur einmal pro Rennen
+  const pool = ANIMALS.map((a) => a.id).filter((id) => id !== humanAnimal);
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
   }
-  const sim = new RaceSim(track, entrants, demo ? 99 : RACE.laps);
+  for (const id of pool) {
+    if (entrants.length >= RACE.animalsPerRace) break;
+    entrants.push({ animalId: id, human: false, aiLevel: level });
+  }
+  const seed = Math.floor(Math.random() * 1e6);
+  const sim = new RaceSim(track, entrants, demo ? 99 : RACE.laps, seed);
   const trackView = new TrackView(track, sim, gr.quality);
   gr.scene.add(trackView.group);
   gr.applyTheme(data.theme);
   const view = new RaceView(gr, sim, trackView);
   const me = sim.animals.findIndex((a) => a.human);
-  const seed = Math.floor(Math.random() * 1e6);
   const drivers = sim.animals.map((_, i) => new AiDriver(i, seed));
   view.mode = demo ? 'orbit' : 'chase';
   view.focus = me >= 0 ? me : 0;
@@ -172,7 +174,10 @@ function frame(now: number) {
         return s.drivers[i].think(s.sim);
       });
       s.sim.step(inputs);
-      for (const e of s.sim.drainEvents()) s.hud?.handleEvent(e);
+      for (const e of s.sim.drainEvents()) {
+        s.hud?.handleEvent(e);
+        s.view.handleEvent(e);
+      }
       accumulator -= SIM_DT;
       steps++;
     }
@@ -210,7 +215,8 @@ function updateFps(dt: number) {
 // Menüs
 
 function go(screen: ScreenName) {
-  if (screen === 'animal') buildAnimalCards(choice.animal, (id) => (choice.animal = id));
+  if (screen === 'animal') buildAnimalPicker(choice.animal, (id) => (choice.animal = id));
+  else stopAnimalPreview();
   if (screen === 'track') {
     buildTrackCards(choice.track, (id) => (choice.track = id));
     segmented(
@@ -308,6 +314,7 @@ function setupUi() {
   input.bindTouchButton(document.getElementById('t-right')!, 'rechts');
   input.bindTouchButton(document.getElementById('t-jump')!, 'springen');
   input.bindTouchButton(document.getElementById('t-run')!, 'vorwaerts');
+  input.bindTouchButton(document.getElementById('t-power')!, 'superkraft');
 
   // Vollbild (Handy): danach Querformat sperren, falls möglich
   document.querySelectorAll('.fs-btn').forEach((b) =>

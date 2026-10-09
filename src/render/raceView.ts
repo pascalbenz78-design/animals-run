@@ -7,6 +7,8 @@ import { VIEW } from '../config/balance';
 import { getAnimal } from '../animals/animals';
 import { AnimalModel } from '../animals/models';
 import type { RaceSim } from '../game/simulation';
+import type { SimEvent } from '../game/types';
+import { EffectsView, type AnimalPos } from './effects';
 import { wrapAngle } from '../game/track';
 import type { GameRenderer } from './renderer';
 import { blobTexture } from './textures';
@@ -58,6 +60,9 @@ export class RaceView {
   private readonly dustGeo = new THREE.BufferGeometry();
   private dustNext = 0;
   private readonly tmp = new THREE.Vector3();
+  readonly effects: EffectsView;
+  /** Interpolierte Positionen des aktuellen Frames */
+  private readonly pos: AnimalPos[] = [];
 
   constructor(
     private readonly gr: GameRenderer,
@@ -94,6 +99,9 @@ export class RaceView {
     );
     dust.frustumCulled = false;
     this.group.add(dust);
+    this.effects = new EffectsView(sim);
+    this.group.add(this.effects.group);
+    for (let i = 0; i < sim.animals.length; i++) this.pos.push({ x: 0, y: 0, z: 0, heading: 0 });
     gr.scene.add(this.group);
   }
 
@@ -108,11 +116,14 @@ export class RaceView {
       const alt = a.prevAlt + (a.alt - a.prevAlt) * alpha;
       const heading = a.prevHeading + wrapAngle(a.heading - a.prevHeading) * alpha;
       const ground = t.heightAt(a.s);
-      m.root.visible = a.respawn <= 0 || Math.floor(time * 10) % 2 === 0;
+      const pp = this.pos[a.id];
+      pp.x = x;
+      pp.y = ground + alt;
+      pp.z = z;
+      pp.heading = heading;
+      m.root.visible = (a.respawn <= 0 || Math.floor(time * 10) % 2 === 0) && !this.effects.hideModel(a.id);
       m.root.position.set(x, ground + alt, z);
       m.root.rotation.y = Math.PI / 2 - heading;
-      // Am Hang leicht neigen
-      m.root.rotation.x = 0;
       m.animate(
         {
           speed: a.speed,
@@ -122,6 +133,8 @@ export class RaceView {
           vy: a.vy,
           stride: a.stride,
           stumble: a.stumble,
+          stun: a.stun,
+          spin: a.spin,
           celebrate: a.finished,
           time: time + a.id * 0.37,
         },
@@ -136,10 +149,12 @@ export class RaceView {
       blob.visible = m.root.visible;
 
       // Staub hinter laufenden Tieren
-      if (a.grounded && a.speed > 6 && Math.random() < dt * (a.inMud ? 30 : 14)) {
-        this.spawnDust(x - Math.cos(heading) * 0.8, ground + 0.15, z - Math.sin(heading) * 0.8, a.inMud);
+      const digging = a.active === 'spuernase';
+      if ((a.grounded && a.speed > 6 && Math.random() < dt * (a.inMud ? 30 : 14)) || (digging && Math.random() < dt * 40)) {
+        this.spawnDust(x - Math.cos(heading) * 0.8, ground + 0.15, z - Math.sin(heading) * 0.8, a.inMud || digging);
       }
     }
+    this.effects.update(this.pos, this.focus, time, dt);
     this.updateDust(dt);
     this.trackView.update(time, sim.time);
     this.updateCamera(alpha, dt, time);
@@ -215,9 +230,24 @@ export class RaceView {
     }
     this.camInit = true;
     cam.position.copy(this.camPos);
+    if (this.effects.shake > 0) {
+      const s = this.effects.shake * 0.35;
+      cam.position.x += Math.sin(time * 61) * s;
+      cam.position.y += Math.sin(time * 47) * s;
+    }
     cam.lookAt(this.camLook);
     cam.updateProjectionMatrix();
     this.gr.focusShadows(x, y, z);
+  }
+
+  /** Ereignis aus der Simulation (für Effekte wie Schockwellen oder Staubwolken). */
+  handleEvent(e: SimEvent) {
+    if (e.animal < 0) return;
+    this.effects.handleEvent(e, this.pos, this.focus);
+    if (e.type === 'leapHit' || e.type === 'quake') {
+      const p = this.pos[e.animal];
+      for (let i = 0; i < 24; i++) this.spawnDust(p.x + Math.cos(i) * 1.2, p.y + 0.2, p.z + Math.sin(i) * 1.2, false);
+    }
   }
 
   resetCamera() {
