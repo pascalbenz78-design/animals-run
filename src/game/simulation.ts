@@ -118,6 +118,7 @@ export class RaceSim {
         lap: 1,
         lapStart: 0,
         bestLap: Infinity,
+        lastLap: 0,
         finished: false,
         finishTime: 0,
         place: gridIndex + 1,
@@ -350,6 +351,7 @@ export class RaceSim {
         // Runde beendet
         const lapTime = this.time - a.lapStart;
         a.bestLap = Math.min(a.bestLap, lapTime);
+        a.lastLap = lapTime;
         a.lapStart = this.time;
         if (a.cpPassed >= total) {
           a.finished = true;

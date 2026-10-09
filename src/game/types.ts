@@ -58,6 +58,8 @@ export interface AnimalState {
   lap: number;
   lapStart: number;
   bestLap: number;
+  /** Zeit der zuletzt beendeten Runde */
+  lastLap: number;
   finished: boolean;
   finishTime: number;
   place: number;

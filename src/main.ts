@@ -105,7 +105,7 @@ function buildSession(trackId: string, humanAnimal: string | null, level: AiLeve
     sim.phase = 'running';
   }
   accumulator = 0;
-  return { trackId, sim, trackView, view, drivers, hud: me >= 0 ? new Hud(sim, me) : null, me, demo, names };
+  return { trackId, sim, trackView, view, drivers, hud: me >= 0 ? new Hud(sim, me, trackId) : null, me, demo, names };
 }
 
 function disposeSession() {

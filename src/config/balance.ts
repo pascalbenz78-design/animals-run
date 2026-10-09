@@ -56,13 +56,13 @@ export const STAT_SCALE = {
   /** Drehrate in rad/s bei langsamem Tempo. */
   turnRate: [0, 1.8, 2.0, 2.3, 2.6, 3.0],
   /** Bodenhaftung in Kurven (m/s²): Drehrate höchstens Haftung / Tempo. Kleiner = grösserer Kurvenradius. */
-  grip: [0, 6.0, 7.2, 8.4, 9.6, 10.8],
+  grip: [0, 7.0, 8.0, 9.2, 10.4, 11.5],
 };
 
 export const ENERGY = {
   max: 100,
   /** Verbrauch pro Sekunde bei vollem Tempo. */
-  drainPerSecond: 0.8,
+  drainPerSecond: 1.6,
   /** Faktor bergauf (Steigung > uphillSlope). */
   uphillFactor: 1.6,
   uphillSlope: 0.04,

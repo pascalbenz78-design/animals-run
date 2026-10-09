@@ -5,6 +5,7 @@ import { getAnimal } from '../animals/animals';
 import type { RaceSim } from '../game/simulation';
 import { wrapAngle } from '../game/track';
 import type { SimEvent } from '../game/types';
+import { submitLap } from '../storage';
 
 const $ = <E extends HTMLElement>(id: string) => document.getElementById(id) as E;
 
@@ -23,6 +24,7 @@ export class Hud {
   private readonly countdown = $('countdown');
   private readonly toastEl = $('toast');
   private readonly warn = $('warn');
+  private readonly lapInfo = $('lapinfo');
   private readonly map = $<HTMLCanvasElement>('minimap');
   private readonly ctx = this.map.getContext('2d')!;
   private mapPath: Path2D | null = null;
@@ -32,11 +34,29 @@ export class Hud {
   constructor(
     private readonly sim: RaceSim,
     private readonly me: number,
+    private readonly trackId: string,
   ) {
     this.buildMap();
     this.countdown.textContent = '';
     this.toastEl.className = '';
     this.warn.textContent = '';
+    this.lapInfo.className = '';
+  }
+
+  /** Nach jeder Runde: Rundenzeit, eigene Bestzeit und bisherige Bestzeit anzeigen. */
+  private showLapTime(lapNumber: number) {
+    const a = this.sim.animals[this.me];
+    const time = a.lastLap;
+    const { previous, isNew } = submitLap(this.trackId, a.animalId, time);
+    let second: string;
+    if (previous === null) second = `<div class="new">${T.hud.firstRecord}</div>`;
+    else if (isNew)
+      second = `<div class="new">${T.hud.newRecord} <span class="faster">−${(previous - time).toFixed(2)}</span><br><small>${T.hud.previous}: ${formatTime(previous)}</small></div>`;
+    else second = `<div>${T.hud.record}: ${formatTime(previous)} <span class="slower">+${(time - previous).toFixed(2)}</span></div>`;
+    this.lapInfo.innerHTML = `<div class="big">${T.hud.lapTime} ${lapNumber}: ${formatTime(time)}</div>${second}`;
+    this.lapInfo.className = '';
+    void this.lapInfo.offsetWidth; // Animation neu starten
+    this.lapInfo.className = 'show';
   }
 
   private buildMap() {
@@ -139,6 +159,7 @@ export class Hud {
     if (e.type === 'countdown') this.showCountdown(String(e.value));
     else if (e.type === 'go') this.showCountdown(T.hud.go);
     else if (e.animal === this.me) {
+      if (e.type === 'lap' || e.type === 'finish') this.showLapTime(e.type === 'lap' ? e.value! - 1 : this.sim.laps);
       if (e.type === 'lap') this.toast(e.value === this.sim.laps ? T.hud.lastLap : `${T.hud.lap} ${e.value}/${this.sim.laps}`);
       else if (e.type === 'finish') this.toast(`${T.hud.finish} ${this.sim.animals[this.me].place}. ${T.hud.place}`);
       else if (e.type === 'bolt') {

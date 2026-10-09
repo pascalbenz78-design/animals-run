@@ -1,7 +1,8 @@
 /** Lokales Speichern im Browser (Einstellungen, Bestzeiten). Alles in try/catch: kann fehlschlagen. */
 import type { Quality } from './render/trackView';
 
-const KEY = 'animals-run-v1';
+// v2: Bauernhof wurde auf ~35-s-Runden verkürzt, alte Bestzeiten passen nicht mehr
+const KEY = 'animals-run-v2';
 
 export interface Settings {
   quality: Quality;
@@ -70,6 +71,23 @@ export function settings(): Settings {
 export function updateSettings(p: Partial<Settings>) {
   Object.assign(load().settings, p);
   save();
+}
+
+/** Bestzeit einer Strecke für eine Runde (oder null). */
+export function bestLap(trackId: string): number | null {
+  return load().bestLaps[trackId]?.time ?? null;
+}
+
+/** Rundenzeit sofort eintragen. Gibt die bisherige Bestzeit zurück und ob es eine neue ist. */
+export function submitLap(trackId: string, animalId: string, time: number): { previous: number | null; isNew: boolean } {
+  const d = load();
+  const previous = d.bestLaps[trackId]?.time ?? null;
+  const isNew = previous === null || time < previous;
+  if (isNew) {
+    d.bestLaps[trackId] = { time, animalId };
+    save();
+  }
+  return { previous, isNew };
 }
 
 /** Bestzeit eintragen; gibt true zurück, wenn es eine neue Bestzeit ist. */
