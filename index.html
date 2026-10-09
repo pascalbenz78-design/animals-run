@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="de-CH">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#4a9be8" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐾</text></svg>" />
+    <title>Animals Run</title>
+  </head>
+  <body>
+    <div id="game"></div>
+
+    <div id="ui">
+      <!-- Titelbild -->
+      <section id="scr-title" class="screen">
+        <div class="logo"><span class="logo-a">Animals</span><span class="logo-b">Run</span></div>
+        <p class="blink" data-t="tapToStart"></p>
+      </section>
+
+      <!-- Hauptmenü -->
+      <section id="scr-main" class="screen hidden">
+        <div class="logo small"><span class="logo-a">Animals</span><span class="logo-b">Run</span></div>
+        <div class="menu-col">
+          <button class="btn big" data-go="animal" data-t="menu.single"></button>
+          <button class="btn" data-go="options" data-t="menu.options"></button>
+          <button class="btn" data-go="controls" data-t="menu.controls"></button>
+        </div>
+        <button class="btn icon fs-btn" title="Vollbild">⛶</button>
+      </section>
+
+      <!-- Tierwahl -->
+      <section id="scr-animal" class="screen hidden">
+        <h2 data-t="menu.chooseAnimal"></h2>
+        <div id="animal-cards" class="cards"></div>
+        <div class="row">
+          <button class="btn" data-go="main" data-t="menu.back"></button>
+          <button class="btn primary" data-go="track" data-t="menu.next"></button>
+        </div>
+      </section>
+
+      <!-- Streckenwahl -->
+      <section id="scr-track" class="screen hidden">
+        <h2 data-t="menu.chooseTrack"></h2>
+        <div id="track-cards" class="cards"></div>
+        <div class="row center">
+          <span data-t="menu.difficulty"></span>
+          <div id="difficulty" class="seg"></div>
+        </div>
+        <div class="row">
+          <button class="btn" data-go="animal" data-t="menu.back"></button>
+          <button class="btn primary" id="btn-start" data-t="menu.start"></button>
+        </div>
+      </section>
+
+      <!-- Optionen -->
+      <section id="scr-options" class="screen hidden">
+        <h2 data-t="options.title"></h2>
+        <div class="panel">
+          <div class="opt"><span data-t="options.quality"></span><div id="opt-quality" class="seg"></div></div>
+          <div class="opt"><span data-t="options.autoRun"></span><div id="opt-autorun" class="seg"></div></div>
+          <div class="opt"><span data-t="options.controlHints"></span><div id="opt-hints" class="seg"></div></div>
+          <p class="note" data-t="options.audioLater"></p>
+        </div>
+        <button class="btn" id="btn-options-back" data-t="menu.back"></button>
+      </section>
+
+      <!-- Steuerung -->
+      <section id="scr-controls" class="screen hidden">
+        <h2 data-t="controls.title"></h2>
+        <div class="panel"><table id="controls-table"></table><p class="note" data-t="controls.hint"></p></div>
+        <button class="btn" data-go="main" data-t="menu.back"></button>
+      </section>
+
+      <!-- Laden -->
+      <section id="scr-loading" class="screen hidden">
+        <div class="loading-card">
+          <div id="loading-name" class="loading-name"></div>
+          <div id="loading-sub"></div>
+          <p class="blink" data-t="loading"></p>
+        </div>
+      </section>
+
+      <!-- Rennen: HUD -->
+      <section id="hud" class="hidden">
+        <div class="hud-tl">
+          <div class="place"><span id="hud-place">1.</span><small>/8</small></div>
+          <div class="hud-box">
+            <div><span data-t="hud.lap"></span> <b id="hud-lap">1/3</b></div>
+            <div id="hud-time" class="mono">0:00.00</div>
+          </div>
+        </div>
+        <div class="hud-energy">
+          <span class="bolt-ico">⚡</span>
+          <div class="bar"><div id="hud-energy-fill"></div></div>
+        </div>
+        <canvas id="minimap" width="180" height="180"></canvas>
+        <button id="btn-pause" class="btn icon pause-btn" aria-label="Pause">❚❚</button>
+        <div id="countdown"></div>
+        <div id="toast"></div>
+        <div id="warn"></div>
+        <div id="touch" class="hidden">
+          <div class="tleft">
+            <button class="tbtn" id="t-left">◀</button>
+            <button class="tbtn" id="t-right">▶</button>
+          </div>
+          <div class="tright">
+            <button class="tbtn small" id="t-jump" data-t="hud.jump"></button>
+            <button class="tbtn run" id="t-run" data-t="hud.run"></button>
+          </div>
+        </div>
+        <div id="key-hints" class="hidden">W/↑ Lauf · A/D ◀ ▶ Lenken · Leertaste Sprung · Esc Pause</div>
+      </section>
+
+      <!-- Pause -->
+      <section id="scr-pause" class="screen dim hidden">
+        <h2 data-t="pause.title"></h2>
+        <div class="menu-col">
+          <button class="btn big" id="btn-resume" data-t="pause.resume"></button>
+          <button class="btn" id="btn-restart" data-t="pause.restart"></button>
+          <button class="btn" id="btn-pause-options" data-t="pause.options"></button>
+          <button class="btn" id="btn-quit" data-t="pause.toMenu"></button>
+        </div>
+      </section>
+
+      <!-- Ergebnis -->
+      <section id="scr-results" class="screen dim hidden">
+        <h2 data-t="results.title"></h2>
+        <div id="record" class="record hidden" data-t="results.newRecord"></div>
+        <div class="panel"><table id="results-table"></table></div>
+        <div class="row">
+          <button class="btn" id="btn-results-menu" data-t="results.menu"></button>
+          <button class="btn primary" id="btn-again" data-t="results.again"></button>
+        </div>
+      </section>
+
+      <div id="rotate"><div>📱↻</div><p data-t="rotate"></p></div>
+      <div id="fps" class="hidden"></div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
