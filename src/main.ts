@@ -15,23 +15,39 @@ import { InputManager, isTouchDevice } from './input/input';
 import { RaceView } from './render/raceView';
 import { GameRenderer } from './render/renderer';
 import { TrackView, type Quality } from './render/trackView';
-import { getTrack } from './tracks';
-import { settings, submitTime, updateSettings } from './storage';
+import { Ceremony } from './render/ceremony';
+import { CUPS, getTrack, TRACKS } from './tracks';
+import { settings, submitCup, submitTime, updateSettings } from './storage';
 import { Hud } from './ui/hud';
 import {
   applyTexts,
   buildAnimalPicker,
   stopAnimalPreview,
   buildControlsTable,
+  buildCupCards,
   buildResults,
+  buildStandings,
   buildTrackCards,
+  type StandingRow,
   segmented,
   showHud,
   showScreen,
   type ScreenName,
 } from './ui/menus';
 
-type AppState = 'menu' | 'loading' | 'race' | 'paused' | 'results';
+type AppState = 'menu' | 'loading' | 'race' | 'paused' | 'results' | 'ceremony';
+
+/** Laufender Cup: gleiche Gegner in allen Rennen, Punkte werden zusammengezählt */
+interface CupState {
+  id: string;
+  name: string;
+  tracks: string[];
+  index: number;
+  roster: string[];
+  points: Record<string, number>;
+  /** Punkte aus dem letzten Rennen */
+  gained: Record<string, number>;
+}
 
 interface Session {
   trackId: string;
@@ -60,25 +76,37 @@ let session: Session | null = null;
 let accumulator = 0;
 let lastFrame = performance.now();
 let elapsed = 0;
-let choice = { animal: settings().lastAnimal, track: settings().lastTrack, level: 'mittel' as AiLevel };
+let choice = {
+  animal: settings().lastAnimal,
+  track: settings().lastTrack,
+  level: 'mittel' as AiLevel,
+  mode: 'einzel' as 'einzel' | 'cup',
+  cup: CUPS[0].id,
+};
+let cup: CupState | null = null;
+let ceremony: Ceremony | null = null;
 let optionsReturn: ScreenName = 'main';
 
 // ---------------------------------------------------------------------------
 // Rennen aufbauen
 
-function buildSession(trackId: string, humanAnimal: string | null, level: AiLevel, demo: boolean): Session {
-  disposeSession();
-  const data = getTrack(trackId);
-  const track = new Track(data);
-  const entrants: Entrant[] = [];
-  if (humanAnimal) entrants.push({ animalId: humanAnimal, human: true, aiLevel: level });
-  // Computergegner: zufällig aus den übrigen Tieren, jedes Tier nur einmal pro Rennen
+/** Computergegner: zufällig aus den übrigen Tieren, jedes Tier nur einmal pro Rennen */
+function pickOpponents(humanAnimal: string | null): string[] {
   const pool = ANIMALS.map((a) => a.id).filter((id) => id !== humanAnimal);
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [pool[i], pool[j]] = [pool[j], pool[i]];
   }
-  for (const id of pool) {
+  return pool.slice(0, RACE.animalsPerRace - (humanAnimal ? 1 : 0));
+}
+
+function buildSession(trackId: string, humanAnimal: string | null, level: AiLevel, demo: boolean, opponents?: string[]): Session {
+  disposeSession();
+  const data = getTrack(trackId);
+  const track = new Track(data);
+  const entrants: Entrant[] = [];
+  if (humanAnimal) entrants.push({ animalId: humanAnimal, human: true, aiLevel: level });
+  for (const id of opponents ?? pickOpponents(humanAnimal)) {
     if (entrants.length >= RACE.animalsPerRace) break;
     entrants.push({ animalId: id, human: false, aiLevel: level });
   }
@@ -120,21 +148,24 @@ function disposeSession() {
 }
 
 function startDemo() {
-  session = buildSession('bauernhof', null, 'mittel', true);
+  // Im Hintergrund des Titelbilds läuft ein Rennen auf einer zufälligen Strecke
+  const id = TRACKS[Math.floor(Math.random() * TRACKS.length)].id;
+  session = buildSession(id, null, 'mittel', true);
 }
 
 function startRace() {
   state = 'loading';
-  const data = getTrack(choice.track);
+  const trackId = cup ? cup.tracks[cup.index] : choice.track;
+  const data = getTrack(trackId);
   document.getElementById('loading-name')!.textContent = data.name;
-  document.getElementById('loading-sub')!.textContent = data.subtitle;
+  document.getElementById('loading-sub')!.textContent = cup ? `${cup.name} · ${T.cup.race} ${cup.index + 1}/${cup.tracks.length}` : data.subtitle;
   showScreen('loading');
   showHud(false);
   updateSettings({ lastAnimal: choice.animal, lastTrack: choice.track });
   // Kurz warten, damit der Ladebildschirm sichtbar wird
   setTimeout(
     () => {
-      session = buildSession(choice.track, choice.animal, choice.level, false);
+      session = buildSession(trackId, choice.animal, choice.level, false, cup?.roster);
       session.view.resetCamera();
       state = 'race';
       showScreen('none');
@@ -145,14 +176,69 @@ function startRace() {
   );
 }
 
+function startCup() {
+  const def = CUPS.find((c) => c.id === choice.cup) ?? CUPS[0];
+  const roster = pickOpponents(choice.animal);
+  const points: Record<string, number> = { [choice.animal]: 0 };
+  for (const id of roster) points[id] = 0;
+  cup = { id: def.id, name: def.name, tracks: def.tracks, index: 0, roster, points, gained: {} };
+  startRace();
+}
+
+function cupRows(): StandingRow[] {
+  if (!cup) return [];
+  return Object.keys(cup.points).map((id) => ({ name: getAnimal(id).name, me: id === choice.animal, points: cup!.points[id], gained: cup!.gained[id] ?? 0 }));
+}
+
 function finishRace() {
   if (!session) return;
   state = 'results';
   const s = session;
   const me = s.sim.animals[s.me];
   const isRecord = me.finished ? submitTime(s.trackId, me.animalId, me.finishTime, me.bestLap) : false;
-  buildResults(s.sim.results(), s.names, s.me, isRecord);
+  const results = s.sim.results();
+  buildResults(results, s.names, s.me, isRecord);
+  const title = document.getElementById('results-title')!;
+  document.getElementById('cup-box')!.classList.toggle('hidden', !cup);
+  document.getElementById('btn-again')!.classList.toggle('hidden', !!cup);
+  document.getElementById('btn-next')!.classList.toggle('hidden', !cup);
+  if (cup) {
+    // Punkte verteilen: 15 – 12 – 10 – 8 – 6 – 4 – 2 – 1
+    cup.gained = {};
+    for (const r of results) {
+      const pts = RACE.cupPoints[r.place - 1] ?? 0;
+      cup.points[r.animalId] = (cup.points[r.animalId] ?? 0) + pts;
+      cup.gained[r.animalId] = pts;
+    }
+    buildStandings('cup-table', cupRows());
+    title.textContent = `${T.cup.race} ${cup.index + 1}/${cup.tracks.length} · ${getTrack(s.trackId).name}`;
+    document.getElementById('btn-next')!.textContent = cup.index + 1 < cup.tracks.length ? T.cup.next : T.cup.ceremony;
+  } else title.textContent = T.results.title;
   showScreen('results');
+}
+
+function nextCupRace() {
+  if (!cup) return;
+  cup.index++;
+  if (cup.index < cup.tracks.length) startRace();
+  else startCeremony();
+}
+
+/** Siegerehrung: die drei Besten auf dem Podest */
+function startCeremony() {
+  if (!cup) return;
+  disposeSession();
+  state = 'ceremony';
+  showHud(false);
+  const order = Object.keys(cup.points).sort((a, b) => cup!.points[b] - cup!.points[a]);
+  ceremony = new Ceremony(gr, order.slice(0, 3));
+  const myPlace = order.indexOf(choice.animal) + 1;
+  submitCup(cup.id, choice.animal, myPlace);
+  cup.gained = {};
+  buildStandings('ceremony-table', cupRows());
+  document.getElementById('ceremony-title')!.textContent = `${T.cup.title} · ${cup.name}`;
+  document.getElementById('ceremony-you')!.textContent = `${T.cup.youPlace} ${myPlace}!`;
+  showScreen('ceremony');
 }
 
 // ---------------------------------------------------------------------------
@@ -166,7 +252,8 @@ function frame(now: number) {
   elapsed += dt;
   updateFps(dt);
 
-  if (session && state !== 'paused' && state !== 'loading') simulate(dt);
+  if (ceremony) ceremony.update(dt);
+  else if (session && state !== 'paused' && state !== 'loading') simulate(dt);
   gr.render(elapsed);
 }
 
@@ -226,7 +313,14 @@ function go(screen: ScreenName) {
   if (screen === 'animal') buildAnimalPicker(choice.animal, (id) => (choice.animal = id));
   else stopAnimalPreview();
   if (screen === 'track') {
-    buildTrackCards(choice.track, (id) => (choice.track = id));
+    const title = document.getElementById('track-title')!;
+    if (choice.mode === 'cup') {
+      title.textContent = T.menu.chooseCup;
+      buildCupCards(choice.cup, (id) => (choice.cup = id));
+    } else {
+      title.textContent = T.menu.chooseTrack;
+      buildTrackCards(choice.track, (id) => (choice.track = id));
+    }
     segmented(
       document.getElementById('difficulty')!,
       (['leicht', 'mittel', 'schwer'] as AiLevel[]).map((l) => [l, T.difficulty[l]]),
@@ -265,6 +359,7 @@ function buildOptions() {
 function applyBodyFlags() {
   const s = settings();
   document.body.classList.toggle('autorun', s.autoRun);
+  document.getElementById('t-run')!.textContent = s.autoRun ? T.hud.brake : T.hud.run;
   const touch = isTouchDevice();
   document.getElementById('touch')!.classList.toggle('hidden', !touch);
   document.getElementById('key-hints')!.classList.toggle('hidden', touch || !s.controlHints);
@@ -283,6 +378,11 @@ function togglePause() {
 
 function toMenu() {
   state = 'menu';
+  cup = null;
+  if (ceremony) {
+    ceremony.dispose();
+    ceremony = null;
+  }
   showHud(false);
   startDemo();
   go('main');
@@ -299,7 +399,17 @@ function setupUi() {
   window.addEventListener('keydown', (e) => {
     if (!document.getElementById('scr-title')!.classList.contains('hidden') && e.code !== 'Escape') go('main');
   });
-  document.getElementById('btn-start')!.addEventListener('click', startRace);
+  document.getElementById('btn-start')!.addEventListener('click', () => (choice.mode === 'cup' ? startCup() : startRace()));
+  document.getElementById('btn-single')!.addEventListener('click', () => {
+    choice.mode = 'einzel';
+    go('animal');
+  });
+  document.getElementById('btn-cup')!.addEventListener('click', () => {
+    choice.mode = 'cup';
+    go('animal');
+  });
+  document.getElementById('btn-next')!.addEventListener('click', nextCupRace);
+  document.getElementById('btn-ceremony-menu')!.addEventListener('click', toMenu);
   document.getElementById('btn-pause')!.addEventListener('click', togglePause);
   document.getElementById('btn-resume')!.addEventListener('click', togglePause);
   document.getElementById('btn-restart')!.addEventListener('click', startRace);
@@ -373,6 +483,22 @@ requestAnimationFrame(frame);
     a.icons = 0;
     startPower(session.sim, a);
   },
+  startCup: (animal = 'lenni', cupId = 'pfoten') => {
+    choice = { ...choice, animal, cup: cupId, mode: 'cup' };
+    startCup();
+  },
+  /** Testhilfe: aktuelles Rennen sofort beenden (alle Tiere im Ziel) */
+  finishNow: () => {
+    if (!session) return;
+    for (const a of session.sim.animals) {
+      if (!a.finished) {
+        a.finished = true;
+        a.finishTime = session.sim.time + a.id;
+      }
+    }
+    session.sim.phase = 'done';
+  },
+  nextCupRace: () => nextCupRace(),
   startRace: (animal = 'lenni', track = 'bauernhof') => {
     choice = { ...choice, animal, track };
     startRace();

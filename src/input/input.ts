@@ -21,6 +21,8 @@ const KEYMAP: Record<string, Action> = {
 
 export class InputManager {
   private readonly keys = new Set<string>();
+  /** Bremstaste (S / Pfeil runter): hebt Auto-Lauf auf, solange gedrückt */
+  private braking = false;
   private readonly touch = emptyInput();
   autoRun = false;
   onPause: (() => void) | null = null;
@@ -31,6 +33,10 @@ export class InputManager {
   constructor() {
     window.addEventListener('keydown', (e) => {
       this.firstInteraction();
+      if (e.code === 'KeyS' || e.code === 'ArrowDown') {
+        this.braking = true;
+        e.preventDefault();
+      }
       if (e.code === 'Escape' || e.code === 'KeyP') {
         this.onPause?.();
         return;
@@ -41,7 +47,10 @@ export class InputManager {
         if (!(e.target instanceof HTMLInputElement)) e.preventDefault();
       }
     });
-    window.addEventListener('keyup', (e) => this.keys.delete(e.code));
+    window.addEventListener('keyup', (e) => {
+      this.keys.delete(e.code);
+      if (e.code === 'KeyS' || e.code === 'ArrowDown') this.braking = false;
+    });
     window.addEventListener('blur', () => this.keys.clear());
     window.addEventListener('pointerdown', () => this.firstInteraction(), { once: false });
   }
@@ -84,9 +93,11 @@ export class InputManager {
   sample(): Input {
     const inp = emptyInput();
     for (const code of this.keys) inp[KEYMAP[code]] = true;
-    for (const k of Object.keys(inp) as Action[]) if (this.touch[k]) inp[k] = true;
+    for (const k of Object.keys(inp) as Action[]) if (k !== 'vorwaerts' && this.touch[k]) inp[k] = true;
     this.pollGamepad(inp);
-    if (this.autoRun) inp.vorwaerts = true;
+    // Mit Auto-Lauf wird die Lauf-Taste zur Bremse
+    if (this.autoRun) inp.vorwaerts = !this.braking && !this.touch.vorwaerts;
+    else if (this.touch.vorwaerts) inp.vorwaerts = true;
     return inp;
   }
 

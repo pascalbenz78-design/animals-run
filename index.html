@@ -23,7 +23,8 @@
       <section id="scr-main" class="screen hidden">
         <div class="logo small"><span class="logo-a">Animals</span><span class="logo-b">Run</span></div>
         <div class="menu-col">
-          <button class="btn big" data-go="animal" data-t="menu.single"></button>
+          <button class="btn big" id="btn-single" data-t="menu.single"></button>
+          <button class="btn big cup" id="btn-cup" data-t="menu.cup"></button>
           <button class="btn" data-go="options" data-t="menu.options"></button>
           <button class="btn" data-go="controls" data-t="menu.controls"></button>
         </div>
@@ -48,7 +49,7 @@
 
       <!-- Streckenwahl -->
       <section id="scr-track" class="screen hidden">
-        <h2 data-t="menu.chooseTrack"></h2>
+        <h2 id="track-title" data-t="menu.chooseTrack"></h2>
         <div id="track-cards" class="cards"></div>
         <div class="row center">
           <span data-t="menu.difficulty"></span>
@@ -125,7 +126,7 @@
             <button class="tbtn run" id="t-run" data-t="hud.run"></button>
           </div>
         </div>
-        <div id="key-hints" class="hidden">W/↑ Lauf · A/D ◀ ▶ Lenken · Leertaste Sprung · E Superkraft · Esc Pause</div>
+        <div id="key-hints" class="hidden">W/↑ Lauf · S/↓ Bremsen (Auto-Lauf) · A/D ◀ ▶ Lenken · Leertaste Sprung · E Superkraft · Esc Pause</div>
       </section>
 
       <!-- Pause -->
@@ -141,13 +142,25 @@
 
       <!-- Ergebnis -->
       <section id="scr-results" class="screen dim hidden">
-        <h2 data-t="results.title"></h2>
+        <h2 id="results-title" data-t="results.title"></h2>
         <div id="record" class="record hidden" data-t="results.newRecord"></div>
-        <div class="panel"><table id="results-table"></table></div>
+        <div class="results-row">
+          <div class="panel"><table id="results-table"></table></div>
+          <div id="cup-box" class="panel hidden"><h3 data-t="cup.standings"></h3><table id="cup-table"></table></div>
+        </div>
         <div class="row">
           <button class="btn" id="btn-results-menu" data-t="results.menu"></button>
           <button class="btn primary" id="btn-again" data-t="results.again"></button>
+          <button class="btn primary hidden" id="btn-next" data-t="cup.next"></button>
         </div>
+      </section>
+
+      <!-- Siegerehrung -->
+      <section id="scr-ceremony" class="screen hidden ceremony">
+        <h2 id="ceremony-title" data-t="cup.title"></h2>
+        <div id="ceremony-you" class="record"></div>
+        <div class="panel ceremony-panel"><h3 data-t="cup.final"></h3><table id="ceremony-table"></table></div>
+        <button class="btn primary" id="btn-ceremony-menu" data-t="results.menu"></button>
       </section>
 
       <div id="rotate"><div>📱↻</div><p data-t="rotate"></p></div>

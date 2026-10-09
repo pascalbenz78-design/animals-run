@@ -115,9 +115,10 @@ export class AnimalModel {
       part(G.ball(0.3 * w, 1), c.body, { pos: [0, 0.38, -0.55 * len] }), // Kruppe
       part(G.ball(0.32 * w, 1), c.body, { pos: [0, 0.36, 0.5 * len] }), // Brust
     ];
-    if (c.patches) {
-      for (const [x, y, z, r] of c.patches.spots) {
-        torso.push(part(G.ball(r, 1), c.patches.color, { pos: [x * w, 0.32 + y, z * len], scale: [0.55, 1, 1.2] }));
+    for (const pt of [c.patches, c.patches2]) {
+      if (!pt) continue;
+      for (const [x, y, z, r] of pt.spots) {
+        torso.push(part(G.ball(r, 1), pt.color, { pos: [x * w, 0.32 + y, z * len], scale: [0.55, 1, 1.2] }));
       }
     }
     if (c.dorsalStripe) torso.push(part(G.box(0.07, 0.03, 1.4 * len), c.dorsalStripe, { pos: [0, 0.69, -0.05] }));

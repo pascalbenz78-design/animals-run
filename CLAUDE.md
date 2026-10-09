@@ -9,11 +9,13 @@ npm install          # Abhängigkeiten
 npm run dev          # Entwicklungsserver (auch im WLAN erreichbar: http://<PC-IP>:5173)
 npm run build        # Typprüfung + Produktions-Build nach dist/
 npm run sim          # Kopfloser Renn-Test: Renndauer, Energie, Balance (z. B. npm run sim -- 50 schwer)
-npx tsx scripts/trackinfo.ts bauernhof   # Kurvenradien/Höhen einer Strecke (zum Platzieren von Objekten)
+npx tsx scripts/trackinfo.ts             # Prüfung aller Strecken (engste Kurve, Abstand der Teile)
+npx tsx scripts/trackinfo.ts alpen       # Karte und Kurvenprofil einer Strecke (zum Platzieren von Objekten)
+npx tsx scripts/elemstats.ts             # Statistik je Strecke: Rundenzeit, Stürze, Abkürzungen …
 npx tsx scripts/diag.ts                  # Details eines Rennens pro Tier
 ```
 
-Testhilfen im Browser: `?fps`, `?test` (Autopilot fürs eigene Tier), `?timescale=5`; `window.__game` (state, session, startRace(), advance(sekunden) spult ohne Bildschirm-Takt vor, usePower() löst die eigene Superkraft aus).
+Testhilfen im Browser: `?fps`, `?test` (Autopilot fürs eigene Tier), `?timescale=5`; `window.__game` (state, session, startRace(), advance(sekunden) spult ohne Bildschirm-Takt vor, usePower() löst die eigene Superkraft aus, startCup(), finishNow(), nextCupRace()).
 
 ## Regeln
 
@@ -32,10 +34,11 @@ Testhilfen im Browser: `?fps`, `?test` (Autopilot fürs eigene Tier), `?timescal
 
 ```
 src/config     balance.ts (Zahlen), texts.ts (Texte)
-src/game       Simulation: track.ts, simulation.ts, ai.ts, types.ts, rng.ts
+src/game       Simulation: track.ts, simulation.ts, elements.ts (Streckenelemente), powers.ts, ai.ts, types.ts, rng.ts
 src/animals    animals.ts (Daten), models.ts (3D-Modelle + Animation)
 src/tracks     Streckendaten (bauernhof.ts …), types.ts
-src/render     renderer.ts, trackView.ts, raceView.ts, landmarks.ts, geo.ts, textures.ts
+src/render     renderer.ts, trackView.ts, trackElements.ts, decor.ts, landmarks.ts, weather.ts, effects.ts,
+               raceView.ts, ceremony.ts, geo.ts, textures.ts
 src/input      input.ts (Tastatur, Touch, Gamepad)
 src/ui         hud.ts, menus.ts, style.css
 src/net        (Phase 4) Mehrspieler über PeerJS
@@ -58,9 +61,13 @@ scripts        simrace.ts, diag.ts, trackinfo.ts
   - Sichtbare Effekte in `src/render/effects.ts`, HUD mit Superkraft-Anzeige, Item-Einblendung, Superkraft-Taste
   - Tierwahl mit drehbarer 3D-Vorschau (`src/ui/preview.ts`)
   - Computergegner nutzen Kräfte und Items (leicht/mittel/schwer), Balance-Test aller Tiere (`npm run sim`)
-- [ ] **Phase 3** – Strecken 2–8, Abkürzungen, Schwimmen, Eis/Sand, bewegte Hindernisse, Cup-Modus, Siegerehrung; Bauernhof grafisch fertig ausbauen
+- [x] **Phase 3 – Strecken, Cup und Menüs** (abgeschlossen, wartet auf Abnahme)
+  - Wünsche umgesetzt: Ray gescheckt, Rundenzeit oben, mehr Energieverbrauch, Runden 39–45 s, Auto-Lauf an (+ Bremse)
+  - Alle 8 Strecken mit eigener Stimmung, Wetter und je einer Abkürzung; Baukasten in `src/game/elements.ts`
+  - Cup-Modus (Pfoten-/Hufeisen-Cup) mit Punkten, Zwischenwertung und Siegerehrung (`src/render/ceremony.ts`)
+  - Menüs: Einzelrennen, Cup, Optionen, Steuerung; Bestzeiten und bestes Cup-Ergebnis gespeichert
 - [ ] **Phase 4** – Mehrspieler (PeerJS, Raumcode, Lobby, Host-Simulation, Vorhersage)
 - [ ] **Phase 5** – Ton/Musik, Leistungsoptimierung Handy, Veröffentlichung (GitHub Pages)
 
-Noch nicht vorhanden (bewusst): Abkürzungen (Spürnase-Spur folgt vorerst der Ideallinie), Schwimmen/Eis/Sand, Musik/Töne (auch für Superkräfte; Lautstärke-Optionen erst mit Ton), Cup, Mehrspieler, Hochformat-Steuerung (Hinweis «Bitte Gerät drehen» ist da).
-Bekannt: Aramis gewinnt im Balance-Test etwas häufig (23 %) – Feinabstimmung mit allen Strecken.
+Noch nicht vorhanden (bewusst): Musik/Töne (auch für Superkräfte; Lautstärke-Optionen erst mit Ton), Mehrspieler, Hochformat-Steuerung (Hinweis «Bitte Gerät drehen» ist da).
+Bekannt: Lianen im Dschungel sind nur Kulisse (kein Spielelement). Leistung auf älteren Handys noch nicht gemessen (Phase 5).

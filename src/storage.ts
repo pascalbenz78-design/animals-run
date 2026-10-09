@@ -2,7 +2,8 @@
 import type { Quality } from './render/trackView';
 
 // v2: Bauernhof wurde auf ~35-s-Runden verkürzt, alte Bestzeiten passen nicht mehr
-const KEY = 'animals-run-v2';
+// v3: Auto-Lauf neu standardmässig an, Strecken überarbeitet
+const KEY = 'animals-run-v3';
 
 export interface Settings {
   quality: Quality;
@@ -17,6 +18,8 @@ export interface SaveData {
   /** Bestzeiten: Schlüssel «strecke» → Zeit und Tier */
   bestTimes: Record<string, { time: number; animalId: string }>;
   bestLaps: Record<string, { time: number; animalId: string }>;
+  /** Bester Schlussrang je Cup */
+  cupBest: Record<string, { place: number; animalId: string }>;
 }
 
 function defaultQuality(): Quality {
@@ -26,9 +29,10 @@ function defaultQuality(): Quality {
 
 function defaults(): SaveData {
   return {
-    settings: { quality: defaultQuality(), autoRun: false, controlHints: true, lastAnimal: 'lenni', lastTrack: 'bauernhof' },
+    settings: { quality: defaultQuality(), autoRun: true, controlHints: true, lastAnimal: 'lenni', lastTrack: 'bauernhof' },
     bestTimes: {},
     bestLaps: {},
+    cupBest: {},
   };
 }
 
@@ -45,6 +49,7 @@ export function load(): SaveData {
         settings: { ...d.settings, ...(p.settings ?? {}) },
         bestTimes: p.bestTimes ?? {},
         bestLaps: p.bestLaps ?? {},
+        cupBest: p.cupBest ?? {},
       };
       return cache;
     }
@@ -88,6 +93,16 @@ export function submitLap(trackId: string, animalId: string, time: number): { pr
     save();
   }
   return { previous, isNew };
+}
+
+/** Cup-Ergebnis eintragen; gibt true zurück, wenn es das beste bisher ist. */
+export function submitCup(cupId: string, animalId: string, place: number): boolean {
+  const d = load();
+  const prev = d.cupBest[cupId];
+  if (prev && prev.place <= place) return false;
+  d.cupBest[cupId] = { place, animalId };
+  save();
+  return true;
 }
 
 /** Bestzeit eintragen; gibt true zurück, wenn es eine neue Bestzeit ist. */

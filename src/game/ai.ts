@@ -3,7 +3,7 @@
  * Sie folgen der Ideallinie (mit Abweichung je nach Stufe), weichen Heuballen, Matsch und Fallen aus,
  * holen sich Blitze, Icons und Item-Kisten, springen über Hürden und setzen ihre Superkraft ein.
  */
-import { AI, ICONS, OBSTACLES, PHYSICS, POWERS, SIM_DT } from '../config/balance';
+import { AI, ELEMENTS, ICONS, PHYSICS, POWERS, SIM_DT } from '../config/balance';
 import { findTargetAhead } from './powers';
 import type { RaceSim } from './simulation';
 import { mulberry32 } from './rng';
@@ -46,7 +46,9 @@ export class AiDriver {
       this.laneTimer = 1.2 + this.rng() * 2.2;
       this.laneTarget = (this.rng() * 2 - 1) * lvl.lineNoise;
     }
-    this.lane += (this.laneTarget - this.lane) * Math.min(1, SIM_DT * 1.5);
+    // In der Nähe von Lava und Löchern konzentrierter laufen
+    const danger = sim.el.zones.some((z) => (z.type === 'lava' || z.type === 'loch') && t.delta(a.s, z.s) > -z.length && t.delta(a.s, z.s) < 35);
+    this.lane += ((danger ? this.laneTarget * 0.2 : this.laneTarget) - this.lane) * Math.min(1, SIM_DT * (danger ? 4 : 1.5));
 
     const look = AI.lookAheadBase + AI.lookAheadPerSpeed * a.speed;
     let desiredD = t.racingLine[t.indexAt(a.s + look)] + this.lane;
@@ -61,27 +63,84 @@ export class AiDriver {
       approach = Math.min(approach, Math.max(3, pick.ahead));
     }
 
-    // Matsch meiden, wenn möglich (nicht nötig in Kugel oder beim Buddeln)
+    const el = sim.el;
     const passThrough = a.active === 'hamsterkugel' || a.active === 'spuernase';
-    if (!passThrough) {
-      for (const m of sim.mud) {
-        const ahead = t.delta(a.s, m.s);
-        if (ahead < -m.length || ahead > 40) continue;
-        if (desiredD > m.d0 - st.radius && desiredD < m.d1 + st.radius) {
-          const leftD = m.d1 + st.radius + 0.4;
-          const rightD = m.d0 - st.radius - 0.4;
+    let mustJump = false;
+
+    // Abkürzung: Weg folgen (eigene Steuerung) bzw. Einstieg ansteuern
+    if (a.shortcut >= 0) return this.followShortcut(sim, a, inp);
+    const sc = this.chooseShortcut(sim, a, lvl.useShortcuts);
+    if (sc) {
+      desiredD = sc.d;
+      approach = Math.min(approach, Math.max(3, sc.ahead * 0.8));
+    }
+
+    // Untergründe meiden, wenn möglich (Matsch, Sand, Eis, Wasser, Lava, Löcher).
+    // Geht eine gefährliche Fläche über die ganze Bahn, wird gesprungen.
+    if (!passThrough && !sc) {
+      for (const z of el.zones) {
+        const ahead = t.delta(a.s, z.s);
+        if (ahead < -z.length || ahead > 40) continue;
+        const deadly = z.type === 'lava' || z.type === 'loch';
+        if (z.type === 'tiefwasser' && z.d0 <= -t.halfWidth && z.d1 >= t.halfWidth) continue; // Schwimmstrecke: durch
+        const fullWidth = z.d0 <= -maxD && z.d1 >= maxD;
+        if (fullWidth) {
+          // Graben/Spalte: kurz vorher abspringen
+          if ((deadly || z.type === 'wasser') && ahead > 0 && z.length < 7) {
+            const tApex = st.jumpVelocity / PHYSICS.gravity;
+            if (ahead / Math.max(1, a.speed) <= tApex * 0.75) mustJump = true;
+          }
+          continue;
+        }
+        if (desiredD > z.d0 - st.radius - (deadly ? 0.8 : 0) && desiredD < z.d1 + st.radius + (deadly ? 0.8 : 0)) {
+          const leftD = z.d1 + st.radius + (deadly ? 1.2 : 0.4);
+          const rightD = z.d0 - st.radius - (deadly ? 1.2 : 0.4);
           const canLeft = leftD <= maxD;
           const canRight = rightD >= -maxD;
           if (canLeft && (!canRight || Math.abs(leftD - desiredD) < Math.abs(rightD - desiredD))) desiredD = leftD;
           else if (canRight) desiredD = rightD;
+          if (deadly) approach = Math.min(approach, Math.max(3, ahead));
         }
       }
     }
 
-    // Heuballen und Fallen (Äpfel, Matschfallen) ausweichen
+    // Hängebrücke: in der Mitte bleiben
+    for (let i = 0; i < (el.data.bridges ?? []).length; i++) {
+      const b = el.data.bridges![i];
+      const ahead = t.delta(a.s, b.s * t.length - b.length / 2);
+      if (ahead > 25 || ahead < -b.length) continue;
+      desiredD = el.bridgeOffset(i, sim.time + Math.max(0, ahead) / Math.max(4, a.speed));
+      approach = Math.min(approach, 4);
+    }
+
+    // Kleine Tiere: hohe Hürden mit Lücke durch die Lücke nehmen
+    if (st.radius <= 0.5) {
+      for (const hu of el.hurdles) {
+        if (!hu.gap || st.jumpVelocity ** 2 / (2 * PHYSICS.gravity) >= hu.height + 0.05) continue;
+        const ahead = t.delta(a.s, hu.s);
+        if (ahead <= 0 || ahead > 35) continue;
+        desiredD = (hu.gap[0] + hu.gap[1]) / 2;
+        approach = Math.min(approach, Math.max(3, ahead * 0.8));
+      }
+    }
+
+    // Reifen: durchzielen und rechtzeitig springen (nicht auf «leicht»)
+    if (lvl.boltSeek > 0.5 && !passThrough) {
+      for (const h of el.data.hoops ?? []) {
+        const ahead = t.delta(a.s, h.s * t.length);
+        if (ahead <= 0 || ahead > 30) continue;
+        desiredD = h.d;
+        approach = Math.min(approach, Math.max(3, ahead));
+        const tUp = (st.jumpVelocity - Math.sqrt(Math.max(0, st.jumpVelocity ** 2 - 2 * PHYSICS.gravity * 0.9))) / PHYSICS.gravity;
+        const tApex = st.jumpVelocity / PHYSICS.gravity;
+        if (ahead / Math.max(1, a.speed) <= (tUp + tApex) / 2 + 0.05) mustJump = true;
+      }
+    }
+
+    // Heuballen, Steine, Kakteen und Fallen (Äpfel, Matschfallen) ausweichen
     let avoiding = false;
     if (!passThrough) {
-      const obstacles: { s: number; d: number; r: number }[] = sim.bales.map((b) => ({ s: b.s, d: b.d, r: OBSTACLES.baleRadius }));
+      const obstacles: { s: number; d: number; r: number }[] = el.obstacles.map((b) => ({ s: b.s, d: b.d, r: b.r }));
       if (lvl.avoidHazards) {
         for (const h of sim.hazards) {
           if (h.owner === a.id) continue;
@@ -109,7 +168,8 @@ export class AiDriver {
 
     // Spurführung relativ zur Strecke: Streckenrichtung (leicht vorausgeschaut) plus Korrektur
     // der seitlichen Abweichung. So wird die Kurveninnenseite nicht abgeschnitten.
-    desiredD = Math.max(-maxD, Math.min(maxD, desiredD));
+    // Beim Einstieg in eine Abkürzung darf die Zielspur über den Rand hinaus gehen
+    if (!(sc && desiredD * sc.d > 0 && Math.abs(sc.d) > t.halfWidth)) desiredD = Math.max(-maxD, Math.min(maxD, desiredD));
     const trackHeading = t.headingAt(a.s + a.speed * 0.3);
     const want = trackHeading - Math.atan2(desiredD - a.d, approach);
     const diff = wrapAngle(want - a.heading);
@@ -121,16 +181,53 @@ export class AiDriver {
     const scan = 8 + a.speed * 1.1;
     for (let k = 0; k <= scan; k += 2) maxK = Math.max(maxK, Math.abs(t.racingCurvature[t.indexAt(a.s + k)]));
     maxK = Math.max(maxK, 1e-4);
-    const grip = a.boost > 0 ? st.grip * a.boostFactor * PHYSICS.boostGrip : st.grip;
+    const grip = a.boost > 0 ? st.grip + (a.boostFactor - 1) * PHYSICS.boostGripAdd : st.grip;
     const vAllowed = Math.min(Math.sqrt(grip / maxK), st.turnRate / maxK);
     inp.vorwaerts = a.speed < vAllowed * 1.05 || a.speed < 5;
     if (Math.abs(diff) > 0.9 && a.speed > 7) inp.vorwaerts = false;
 
+    // Tore: ist das Tor bei Ankunft zu, kurz abbremsen (nicht auf «leicht»)
+    if (lvl.boltSeek > 0.5) {
+      const gates = el.data.gates ?? [];
+      for (let i = 0; i < gates.length; i++) {
+        const ahead = t.delta(a.s, gates[i].s * t.length);
+        if (ahead <= 0 || ahead > 14) continue;
+        if (!el.gateOpen(i, sim.time + ahead / Math.max(3, a.speed)) && !el.gateOpen(i, sim.time)) inp.vorwaerts = ahead > 6 ? a.speed < 4 : false;
+      }
+    }
+
+    // Rollende Stämme: springen, wenn der Stamm bei Ankunft da ist
+    if (a.grounded && !passThrough && a.invuln <= 0) {
+      const tApex = st.jumpVelocity / PHYSICS.gravity;
+      for (let i = 0; i < (el.data.logs ?? []).length; i++) {
+        const eta = tApex;
+        const ahead = t.delta(a.s, el.logS(i, sim.time + eta));
+        if (ahead > 0 && ahead / Math.max(1, a.speed) <= tApex + 0.05 && ahead < 14) mustJump = true;
+      }
+    }
+    // Windradflügel: springen, wenn der Flügel gleich da ist, wo das Tier sein wird
+    if (a.grounded && !passThrough && a.hitImmune <= 0) {
+      const look2 = 0.22;
+      const fx = a.x + Math.cos(a.heading) * a.speed * look2;
+      const fz = a.z + Math.sin(a.heading) * a.speed * look2;
+      for (let i = 0; i < (el.data.spinners ?? []).length; i++) {
+        const arm = el.spinnerArm(i, sim.time + look2);
+        const vx = arm.tx - arm.cx;
+        const vz = arm.tz - arm.cz;
+        const k = Math.max(0, Math.min(1, ((fx - arm.cx) * vx + (fz - arm.cz) * vz) / (vx * vx + vz * vz)));
+        if (Math.hypot(fx - arm.cx - vx * k, fz - arm.cz - vz * k) < 1.6 + st.radius && this.rng() < lvl.boltSeek + 0.1) mustJump = true;
+      }
+    }
+    if (mustJump && a.grounded) inp.springen = true;
+
     // Hürden: so abspringen, dass der höchste Punkt über der Hürde liegt
     if (a.grounded && a.speed > 2 && !passThrough && a.invuln <= 0) {
-      for (let h = 0; h < sim.hurdles.length; h++) {
-        const ahead = t.delta(a.s, sim.hurdles[h]);
+      for (let h = 0; h < el.hurdles.length; h++) {
+        const hu = el.hurdles[h];
+        const ahead = t.delta(a.s, hu.s);
         if (ahead <= 0 || ahead > 30) continue;
+        // Zu hoch zum Springen? Dann durch die Lücke (kleine Tiere)
+        if (hu.gap && st.radius <= 0.5 && st.jumpVelocity ** 2 / (2 * PHYSICS.gravity) < hu.height + 0.05) continue;
         const key = h + a.lap * 1000;
         if (!this.jumpPlans.has(key)) {
           const miss = this.rng() < lvl.jumpMissChance;
@@ -156,6 +253,44 @@ export class AiDriver {
     }
 
     inp.superkraft = this.decidePower(sim, a, lvl.powerSkill);
+    return inp;
+  }
+
+  private readonly shortcutPlans = new Map<number, boolean>();
+
+  /** Soll eine Abkürzung genommen werden? Gibt die Zielspur zum Einstieg zurück. */
+  private chooseShortcut(sim: RaceSim, a: AnimalState, chance: number): { d: number; ahead: number } | null {
+    const el = sim.el;
+    const t = sim.track;
+    const st = sim.stats[a.id];
+    for (let k = 0; k < el.shortcuts.length; k++) {
+      const sc = el.shortcuts[k];
+      const ahead = t.delta(a.s, sc.fromS);
+      if (ahead < -2 || ahead > 45) continue;
+      const kind = sc.def.kind;
+      if (kind === 'klein' && st.radius > ELEMENTS.smallRadius) continue;
+      // Versteckte Wege kennt nur, wer sucht (Spürnase) oder die Stufe «schwer»
+      if (kind === 'versteckt' && a.active !== 'spuernase' && chance < 1) continue;
+      const key = k + a.lap * 100;
+      if (!this.shortcutPlans.has(key)) this.shortcutPlans.set(key, this.rng() < chance || a.active === 'spuernase');
+      if (!this.shortcutPlans.get(key)) continue;
+      const edge = t.halfWidth - 1.2;
+      // Sprung-Abkürzungen: schon über die Schanze auf den Rand zuhalten
+      const early = kind === 'sprung' ? 14 : 5;
+      return { d: sc.def.side * (ahead < early ? t.halfWidth + 2 : edge), ahead: Math.max(0, ahead) };
+    }
+    return null;
+  }
+
+  /** Steuerung innerhalb einer Abkürzung: dem Weg folgen */
+  private followShortcut(sim: RaceSim, a: AnimalState, inp: Input): Input {
+    const el = sim.el;
+    const p = el.shortcutPoint(a.shortcut, a.scAlong + Math.max(4, a.speed * 0.6));
+    const diff = wrapAngle(Math.atan2(p.z - a.z, p.x - a.x) - a.heading);
+    if (diff > AI.steerDeadzone) inp.rechts = true;
+    else if (diff < -AI.steerDeadzone) inp.links = true;
+    inp.vorwaerts = Math.abs(diff) < 0.8 || a.speed < 5;
+    inp.superkraft = this.decidePower(sim, a, AI.levels[a.aiLevel].powerSkill);
     return inp;
   }
 
@@ -252,11 +387,11 @@ export class AiDriver {
       case 'hamsterkugel': {
         // Lohnt sich vor Hindernissen
         const obstacleAhead =
-          sim.hurdles.some((h) => {
-            const d = t.delta(a.s, h);
+          sim.el.hurdles.some((h) => {
+            const d = t.delta(a.s, h.s);
             return d > 3 && d < 30;
           }) ||
-          sim.bales.some((b) => {
+          sim.el.obstacles.some((b) => {
             const d = t.delta(a.s, b.s);
             return d > 3 && d < 25;
           });

@@ -21,8 +21,9 @@ export const BAUERNHOF: TrackData = {
     [-58, 24, 0],
     [-30, 4, 0],
   ],
-  targetLength: 500,
+  targetLength: 540,
   width: 15,
+  weather: { type: 'pollen' },
   theme: {
     skyTop: 0x4a9be8,
     skyHorizon: 0xcfe9ff,
@@ -42,17 +43,20 @@ export const BAUERNHOF: TrackData = {
     fence: 0xf4ead8,
   },
   hurdles: [{ s: 0.07 }, { s: 0.64 }, { s: 0.79 }],
-  bales: [
+  obstacles: [
     { s: 0.12, d: 3.5 },
     { s: 0.3, d: -3.5 },
     { s: 0.53, d: 3 },
     { s: 0.71, d: -4 },
     { s: 0.88, d: 3 },
   ],
-  mud: [
-    { s: 0.43, length: 18, d: 3, width: 6 },
-    { s: 0.84, length: 20, d: -2, width: 7 },
+  zones: [
+    { type: 'matsch', s: 0.43, length: 18, d: 3, width: 6 },
+    { type: 'matsch', s: 0.84, length: 20, d: -2, width: 7 },
   ],
+  hoops: [{ s: 0.105, d: -2 }],
+  // Durch das Loch im Zaun: nur für kleine Tiere
+  shortcuts: [{ from: 0.19, to: 0.32, side: -1, kind: 'klein' }],
   bolts: [
     { s: 0.2, ds: [-5.5, -3.3, -1.1, 1.1, 3.3, 5.5] },
     { s: 0.225, ds: [-4.4, -1.5, 1.5, 4.4] },
@@ -78,5 +82,5 @@ export const BAUERNHOF: TrackData = {
     { type: 'windrad', s: 0.7, d: -45 },
     { type: 'stall', s: 0.86, d: 38, rot: 90 },
   ],
-  decor: { seed: 7, trees: 130, bushes: 90, flowers: 200, chickens: 14, hills: 14 },
+  decor: { seed: 7, style: 'wiese', trees: 130, bushes: 90, flowers: 200, critters: 14, hills: 14 },
 };

@@ -3,11 +3,11 @@ import { T } from '../config/texts';
 import { ANIMALS, getAnimal, SPECIES_STATS, type BaseStats } from '../animals/animals';
 import { AnimalPreview } from './preview';
 import type { ResultRow } from '../game/types';
-import { TRACKS } from '../tracks';
+import { CUPS, TRACKS } from '../tracks';
 import { load } from '../storage';
 import { formatTime } from './hud';
 
-export type ScreenName = 'title' | 'main' | 'animal' | 'track' | 'options' | 'controls' | 'loading' | 'pause' | 'results' | 'none';
+export type ScreenName = 'title' | 'main' | 'animal' | 'track' | 'options' | 'controls' | 'loading' | 'pause' | 'results' | 'ceremony' | 'none';
 
 const $ = <E extends HTMLElement>(id: string) => document.getElementById(id) as E;
 
@@ -21,7 +21,7 @@ export function applyTexts() {
   });
 }
 
-const SCREENS: ScreenName[] = ['title', 'main', 'animal', 'track', 'options', 'controls', 'loading', 'pause', 'results'];
+const SCREENS: ScreenName[] = ['title', 'main', 'animal', 'track', 'options', 'controls', 'loading', 'pause', 'results', 'ceremony'];
 
 export function showScreen(name: ScreenName) {
   for (const s of SCREENS) $(`scr-${s}`).classList.toggle('hidden', s !== name);
@@ -99,20 +99,33 @@ export function stopAnimalPreview() {
   preview?.stop();
 }
 
+/** Symbol je Strecke für die Karten */
+const TRACK_EMOJI: Record<string, string> = {
+  bauernhof: '🚜🐔',
+  reitturnier: '🏇🏆',
+  sandstrand: '🏖️🌊',
+  herbstwald: '🍂🌲',
+  wueste: '🌵🐪',
+  alpen: '🏔️❄️',
+  dschungel: '🌴🦜',
+  vulkan: '🌋🔥',
+};
+
+const hex = (n: number) => '#' + n.toString(16).padStart(6, '0');
+
 export function buildTrackCards(selected: string, onSelect: (id: string) => void) {
   const box = $('track-cards');
   box.innerHTML = '';
+  box.classList.add('tracks');
   const best = load().bestTimes;
   TRACKS.forEach((t, i) => {
     const card = document.createElement('button');
     card.className = 'card' + (t.id === selected ? ' sel' : '');
-    const sky = '#' + t.theme.skyTop.toString(16).padStart(6, '0');
-    const ground = '#' + t.theme.ground.toString(16).padStart(6, '0');
     const b = best[t.id];
     card.innerHTML = `
       <h3>${i + 1}. ${t.name}</h3>
       <div class="species">${t.subtitle}</div>
-      <div class="swatch" style="background: linear-gradient(${sky} 0 55%, ${ground} 55% 100%)">🚜🐔</div>
+      <div class="swatch" style="background: linear-gradient(${hex(t.theme.skyTop)} 0 55%, ${hex(t.theme.ground)} 55% 100%)">${TRACK_EMOJI[t.id] ?? ''}</div>
       <div class="desc">${T.bestTime}: ${b ? formatTime(b.time) : '–'}</div>`;
     card.addEventListener('click', () => {
       box.querySelectorAll('.card').forEach((c) => c.classList.remove('sel'));
@@ -121,6 +134,52 @@ export function buildTrackCards(selected: string, onSelect: (id: string) => void
     });
     box.appendChild(card);
   });
+}
+
+/** Cup-Wahl: zwei Karten mit den je 4 Strecken und dem besten Ergebnis */
+export function buildCupCards(selected: string, onSelect: (id: string) => void) {
+  const box = $('track-cards');
+  box.innerHTML = '';
+  box.classList.remove('tracks');
+  const best = load().cupBest;
+  for (const cup of CUPS) {
+    const card = document.createElement('button');
+    card.className = 'card' + (cup.id === selected ? ' sel' : '');
+    const b = best[cup.id];
+    const names = cup.tracks.map((id) => TRACKS.find((t) => t.id === id)!.name);
+    card.innerHTML = `
+      <h3>${cup.name}<span>${cup.icon}</span></h3>
+      <div class="swatch">${cup.tracks.map((id) => (TRACK_EMOJI[id] ?? '').slice(0, 2)).join(' ')}</div>
+      <div class="desc">${names.join(' · ')}</div>
+      <div class="species">${T.cup.best}: ${b ? b.place + '. ' + T.results.place : T.cup.none}</div>`;
+    card.addEventListener('click', () => {
+      box.querySelectorAll('.card').forEach((c) => c.classList.remove('sel'));
+      card.classList.add('sel');
+      onSelect(cup.id);
+    });
+    box.appendChild(card);
+  }
+}
+
+export interface StandingRow {
+  name: string;
+  me: boolean;
+  points: number;
+  /** Punkte aus dem letzten Rennen */
+  gained: number;
+}
+
+/** Cup-Wertung als Tabelle (sortiert nach Punkten) */
+export function buildStandings(tableId: string, rows: StandingRow[]) {
+  const sorted = [...rows].sort((a, b) => b.points - a.points);
+  $(tableId).innerHTML =
+    `<tr><th>${T.results.place}</th><th>${T.results.animal}</th><th>${T.cup.points}</th><th></th></tr>` +
+    sorted
+      .map(
+        (r, i) =>
+          `<tr class="${r.me ? 'me' : ''}"><td>${i + 1}.</td><td>${r.name}</td><td class="mono"><b>${r.points}</b></td><td class="plus">${r.gained ? '+' + r.gained : ''}</td></tr>`,
+      )
+      .join('');
 }
 
 export function buildControlsTable() {

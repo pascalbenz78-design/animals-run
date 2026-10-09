@@ -35,6 +35,7 @@ export class Hud {
   private readonly map = $<HTMLCanvasElement>('minimap');
   private readonly ctx = this.map.getContext('2d')!;
   private mapPath: Path2D | null = null;
+  private shortcutPath: Path2D | null = null;
   private mapTf = { s: 1, ox: 0, oz: 0 };
   private wrongWayTime = 0;
 
@@ -120,6 +121,18 @@ export class Hud {
     }
     p.closePath();
     this.mapPath = p;
+    // Abkürzungen gestrichelt (versteckte nicht)
+    const sp = new Path2D();
+    for (const sc of this.sim.el.shortcuts) {
+      if (sc.def.kind === 'versteckt') continue;
+      for (let i = 0; i < sc.px.length; i++) {
+        const x = sc.px[i] * s + this.mapTf.ox;
+        const y = sc.pz[i] * s + this.mapTf.oz;
+        if (i === 0) sp.moveTo(x, y);
+        else sp.lineTo(x, y);
+      }
+    }
+    this.shortcutPath = sp;
   }
 
   private drawMap() {
@@ -134,6 +147,13 @@ export class Hud {
       c.strokeStyle = '#f2d7a8';
       c.lineWidth = 6;
       c.stroke(this.mapPath);
+    }
+    if (this.shortcutPath) {
+      c.setLineDash([3, 3]);
+      c.strokeStyle = '#f2d7a8';
+      c.lineWidth = 3;
+      c.stroke(this.shortcutPath);
+      c.setLineDash([]);
     }
     // Startlinie
     const t = this.sim.track;
@@ -172,6 +192,13 @@ export class Hud {
     const wrong = Math.abs(wrapAngle(a.heading - trackHeading)) > 1.9 && a.speed > 1.5 && !a.finished;
     this.wrongWayTime = wrong ? this.wrongWayTime + dt : 0;
     let warnText = '';
+    // Lawine: Grollen, wenn sie vor dem Spieler niedergeht
+    const avs = this.sim.el.data.avalanches ?? [];
+    for (let i = 0; i < avs.length; i++) {
+      const st = this.sim.el.avalanche(i, this.sim.time, this.sim.leaderLap);
+      const ahead = this.sim.track.delta(a.s, avs[i].s * this.sim.track.length);
+      if ((st.warn || st.front !== null) && ahead > -avs[i].length && ahead < 90) warnText = T.hud.avalanche;
+    }
     if (this.wrongWayTime > 0.8) warnText = T.hud.wrongWay;
     else if (low && !a.finished && this.sim.phase === 'running') warnText = T.hud.lowEnergy;
     if (this.warn.textContent !== warnText) this.warn.textContent = warnText;

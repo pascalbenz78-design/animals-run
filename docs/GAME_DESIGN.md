@@ -308,3 +308,32 @@ Hier stehen Entscheide, die während der Entwicklung getroffen wurden (mit Begr�
 18. **Balance-Test** (`npm run sim -- 150`, Stufe mittel, Bauernhof): Alle Tiere liegen im Schnitt zwischen Platz 3,8 und 5,1. Aramis gewinnt mit 23 % etwas häufiger. Die Feinabstimmung erfolgt, sobald alle Strecken da sind (Phase 3/5).
 19. **Strecke** nochmals leicht gekürzt (500 m), weil Superkräfte und Items die Runden verlängern. Median-Runde: ca. 35 s.
 20. **Töne** für die Superkräfte folgen mit dem gesamten Ton in Phase 5.
+
+### Phase 3
+
+21. **Wünsche nach Phase 2:**
+    - Ray ist braun-weiss-schwarz gescheckt.
+    - Die Rundenzeit wird oben im Bild angezeigt.
+    - Die Energie nimmt stärker ab: Ein voller Tank reicht ca. 38 s bei vollem Tempo.
+    - Auto-Lauf ist standardmässig an.
+    - Runden dauern je nach Strecke ca. 39–45 s (Median der Computergegner auf «Mittel»).
+22. **Bremsen mit Auto-Lauf:** Am PC mit S / Pfeil runter. Am Handy wird die «Lauf»-Taste zur «Bremse»-Taste, damit man in engen Kurven trotzdem abbremsen kann.
+23. **Baukasten für Strecken** (`src/tracks/types.ts`, Logik in `src/game/elements.ts`):
+    - **Untergründe:** Matsch, Sand, Eis (rutschig, die Bewegungsrichtung folgt verzögert), seichtes Wasser, tiefes Wasser (Schwimmen, kein Sprung, mehr Energieverbrauch, optional mit Strömung), Lava und Löcher (Sturz, nach 1,5 s Wiedereinsetzen).
+    - **Hürdenarten:** Hürde, Oxer, Steilwand (mit Lücke für den Hamster), Zaun, Baumstamm.
+    - **Hindernisse:** Heuballen, Steine, Kakteen, Sandburgen, Schneebälle, Felsen, Baumstümpfe, glühende Felsen.
+    - **Weitere Elemente:** Reifen (Schub), Schanzen, Dünen, Geysire (nur zeitweise aktiv), Tore (öffnen und schliessen), rollende Stämme, Windradflügel (knapp über dem Boden, überspringbar), Brücken (schaukelnd, über Wasser oder Schlucht), Lawinen (ab Runde 3), Wetter und Sandsturm (ab Runde 2).
+24. **Abkürzungen:** Jede Strecke hat eine Abkürzung mit eigenem Weg abseits der Bahn.
+    - **offen:** für alle Tiere.
+    - **klein:** nur für den Hamster (Tunnel).
+    - **sprung:** nur, wer über die Schanze bzw. den Geysir hoch genug springt.
+    - **versteckt:** nicht auf der Minikarte; Tiras Knochenspur führt hin.
+
+    Computergegner auf «Mittel» nehmen Abkürzungen in 50 % der Fälle, auf «Schwer» immer, auf «Leicht» nie. Zuerst durften auch Katzen durch die kleinen Abkürzungen; das machte sie zu stark und widerspricht dem Auftrag («für andere zu eng»).
+25. **Bewegte Hindernisse fair:** Der Windradflügel fegt auf 0,7 m Höhe (überspringbar). Nach einem Treffer ist man 1,4 s geschützt. Wiedereingesetzt wird nie direkt vor Lava oder einem Loch (sonst kam man aus dem Stand nicht darüber).
+26. **Schub-Haftung** ist neu ein fester Zuschlag für alle Tiere (+12 m/s² pro 100 % Schub) statt eines Faktors. Der Faktor bevorzugte die ohnehin wendigen Katzen.
+27. **Balance** (`npm run sim -- 20`, alle 8 Strecken, Stufe «Mittel»): Alle Tiere liegen im Schnitt zwischen Platz 3,9 und 4,8. Dafür wurden Kurvenhaftung und Tempo leicht angepasst (Pferde etwas mehr Haftung, Hamster etwas mehr Tempo).
+28. **Cup:** Gleiche Gegner in allen 4 Rennen. Punkte 15–12–10–8–6–4–2–1, Zwischenwertung nach jedem Rennen, Siegerehrung mit Podest, Pokal und Konfetti. Das beste Cup-Ergebnis wird gespeichert.
+29. **Titelbild:** Im Hintergrund läuft ein Demo-Rennen auf einer zufälligen Strecke.
+30. **Grafik ohne Bilddateien:** Alle Strecken, Wahrzeichen (Richterturm, Leuchtturm, Pyramiden, Chalet, Seilbahn, Tempel, Wasserfall, Vulkan …), Pflanzen und Tiere am Rand sind im Code erzeugt.
+31. **Speicherversion v3:** Bestzeiten der bisherigen Strecken wurden zurückgesetzt, weil die Strecken geändert wurden.

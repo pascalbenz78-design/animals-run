@@ -48,6 +48,8 @@ export interface Appearance {
   stripes?: number;
   /** Flecken (Scheckung, weisse Stellen) */
   patches?: { color: number; spots: [number, number, number, number][] };
+  /** Zweite Fleckenfarbe (z. B. dreifarbig gescheckt) */
+  patches2?: { color: number; spots: [number, number, number, number][] };
   /** Weisser Fleck im Nacken (Ray) */
   neckSpot?: number;
   /** Fesselbehang (Tinker) */
@@ -107,7 +109,32 @@ export const ANIMALS: AnimalDef[] = [
     id: 'ray',
     name: 'Ray',
     species: 'pferd',
-    appearance: { body: 0x76482a, mane: 0x16110d, tail: 0x16110d, legs: 0x5b3820, hooves: 0x1e1712, muzzle: 0x5a3720, neckSpot: 0xffffff },
+    appearance: {
+      body: 0x7a4a28,
+      mane: 0x16110d,
+      mane2: 0xf4f2ee,
+      tail: 0x16110d,
+      hooves: 0x1e1712,
+      muzzle: 0xf4f2ee,
+      face: 0xf4f2ee,
+      neckSpot: 0xffffff,
+      // braun-weiss-schwarz gescheckt
+      patches: {
+        color: 0xf4f2ee,
+        spots: [
+          [0.27, 0.12, 0.2, 0.3],
+          [-0.26, 0.05, -0.3, 0.32],
+          [0.2, -0.05, -0.55, 0.22],
+        ],
+      },
+      patches2: {
+        color: 0x18130f,
+        spots: [
+          [-0.27, 0.15, 0.32, 0.22],
+          [0.28, 0.18, -0.25, 0.2],
+        ],
+      },
+    },
     icon: '🍎',
     power: 'apfelRegen',
     uiColor: '#8a4f2a',

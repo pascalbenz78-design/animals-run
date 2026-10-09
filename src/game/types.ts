@@ -43,7 +43,12 @@ export type SimEventType =
   | 'item'
   | 'quakeWarn'
   | 'quake'
-  | 'leapHit';
+  | 'leapHit'
+  | 'hoop'
+  | 'ramp'
+  | 'splash'
+  | 'bump'
+  | 'fall';
 
 export interface SimEvent {
   type: SimEventType;
@@ -71,6 +76,8 @@ export interface AnimalState {
   alt: number;
   vy: number;
   heading: number;
+  /** Bewegungsrichtung (weicht auf Eis von der Blickrichtung ab) */
+  moveHeading: number;
   speed: number;
   grounded: boolean;
   // Vorheriger Schritt (für interpolierte Darstellung)
@@ -99,6 +106,12 @@ export interface AnimalState {
   jumpHeld: boolean;
   powerHeld: boolean;
   inMud: boolean;
+  /** Aktueller Untergrund ('' = normal) */
+  surface: string;
+  swimming: boolean;
+  /** Index der Abkürzung, in der das Tier gerade ist (−1 = keine) und Weglänge darin */
+  shortcut: number;
+  scAlong: number;
   /** Laufzyklus-Phase für die Animation */
   stride: number;
   // Superkraft
@@ -160,6 +173,8 @@ export interface ItemBox {
   s: number;
   d: number;
   timer: number;
+  /** Im Laubhaufen versteckt */
+  hidden: boolean;
 }
 
 /** Apfel (Ray) oder Matschfalle (Item) auf der Strecke */

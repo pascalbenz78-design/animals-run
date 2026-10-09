@@ -12,6 +12,7 @@ import { EffectsView, type AnimalPos } from './effects';
 import { wrapAngle } from '../game/track';
 import type { GameRenderer } from './renderer';
 import { blobTexture } from './textures';
+import { Weather } from './weather';
 import type { TrackView } from './trackView';
 
 export type CameraMode = 'chase' | 'orbit';
@@ -21,22 +22,25 @@ const DUST_MAX = 220;
 const DUST_VERT = /* glsl */ `
 attribute float aSize;
 attribute float aAlpha;
+attribute vec3 aColor;
 varying float vAlpha;
+varying vec3 vColor;
 void main() {
   vAlpha = aAlpha;
+  vColor = aColor;
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
   gl_PointSize = aSize * (300.0 / -mv.z);
   gl_Position = projectionMatrix * mv;
 }`;
 
 const DUST_FRAG = /* glsl */ `
-uniform vec3 uColor;
 varying float vAlpha;
+varying vec3 vColor;
 void main() {
   vec2 c = gl_PointCoord - 0.5;
   float d = length(c);
   if (d > 0.5) discard;
-  gl_FragColor = vec4(uColor, vAlpha * smoothstep(0.5, 0.1, d));
+  gl_FragColor = vec4(vColor, vAlpha * smoothstep(0.5, 0.1, d));
   #include <colorspace_fragment>
 }`;
 
@@ -57,6 +61,10 @@ export class RaceView {
   private readonly dustLife = new Float32Array(DUST_MAX);
   private readonly dustSize = new Float32Array(DUST_MAX);
   private readonly dustAlpha = new Float32Array(DUST_MAX);
+  private readonly dustColor = new Float32Array(DUST_MAX * 3);
+  /** Staubfarben: Weg, Matsch, Wasser, Schnee */
+  private readonly colors: Record<'weg' | 'matsch' | 'wasser' | 'schnee', THREE.Color>;
+  private readonly weather: Weather;
   private readonly dustGeo = new THREE.BufferGeometry();
   private dustNext = 0;
   private readonly tmp = new THREE.Vector3();
@@ -87,6 +95,15 @@ export class RaceView {
     this.dustGeo.setAttribute('position', new THREE.BufferAttribute(this.dustPos, 3));
     this.dustGeo.setAttribute('aSize', new THREE.BufferAttribute(this.dustSize, 1));
     this.dustGeo.setAttribute('aAlpha', new THREE.BufferAttribute(this.dustAlpha, 1));
+    this.dustGeo.setAttribute('aColor', new THREE.BufferAttribute(this.dustColor, 3));
+    const th = sim.track.data.theme;
+    this.colors = {
+      weg: new THREE.Color(th.trackColor).lerp(new THREE.Color(0xffffff), 0.25),
+      matsch: new THREE.Color(0x6a4a2a),
+      wasser: new THREE.Color(0xdff4ff),
+      schnee: new THREE.Color(0xffffff),
+    };
+    this.weather = new Weather(sim.track.data, gr.scene, gr.quality);
     const dust = new THREE.Points(
       this.dustGeo,
       new THREE.ShaderMaterial({
@@ -94,7 +111,6 @@ export class RaceView {
         fragmentShader: DUST_FRAG,
         transparent: true,
         depthWrite: false,
-        uniforms: { uColor: { value: new THREE.Color(0xd9b98a) } },
       }),
     );
     dust.frustumCulled = false;
@@ -115,7 +131,9 @@ export class RaceView {
       const z = a.prevZ + (a.z - a.prevZ) * alpha;
       const alt = a.prevAlt + (a.alt - a.prevAlt) * alpha;
       const heading = a.prevHeading + wrapAngle(a.heading - a.prevHeading) * alpha;
-      const ground = t.heightAt(a.s);
+      // Schwimmen: Tier sinkt ein; auf Brücken steht es auf den Brettern
+      const onBridge = a.shortcut < 0 && a.surface === '' && sim.el.bridgeAt(a.s) >= 0;
+      const ground = t.heightAt(a.s) + (a.swimming ? -0.5 * Math.min(1, sim.stats[a.id].radius + 0.2) : onBridge ? 0.42 : 0);
       const pp = this.pos[a.id];
       pp.x = x;
       pp.y = ground + alt;
@@ -146,18 +164,23 @@ export class RaceView {
       const fade = Math.max(0.3, 1 - alt * 0.25);
       blob.scale.x = sim.stats[a.id].radius * 2.1 * fade;
       blob.scale.z = sim.stats[a.id].radius * 3.4 * fade;
-      blob.visible = m.root.visible;
+      blob.visible = m.root.visible && !a.swimming;
 
       // Staub hinter laufenden Tieren
+      // Staub, Spritzwasser oder Schnee hinter laufenden Tieren
       const digging = a.active === 'spuernase';
-      if ((a.grounded && a.speed > 6 && Math.random() < dt * (a.inMud ? 30 : 14)) || (digging && Math.random() < dt * 40)) {
-        this.spawnDust(x - Math.cos(heading) * 0.8, ground + 0.15, z - Math.sin(heading) * 0.8, a.inMud || digging);
+      const wet = a.swimming || a.surface === 'wasser';
+      const kind = wet ? 'wasser' : a.inMud || digging ? 'matsch' : t.data.decor.style === 'alpen' ? 'schnee' : 'weg';
+      const rate = wet ? 26 : a.inMud ? 30 : 14;
+      if ((a.grounded && a.speed > (wet ? 2 : 6) && Math.random() < dt * rate) || (digging && Math.random() < dt * 40)) {
+        this.spawnDust(x - Math.cos(heading) * 0.8, ground + (wet ? 0.45 : 0.15), z - Math.sin(heading) * 0.8, kind);
       }
     }
     this.effects.update(this.pos, this.focus, time, dt);
     this.updateDust(dt);
     this.trackView.update(time, sim.time);
     this.updateCamera(alpha, dt, time);
+    this.weather.update(dt, time, this.gr.camera.position, sim.leaderLap);
     // Tiere, die der Kamera zu nahe kommen, ausblenden (sonst ragen sie ins Bild)
     const cam = this.gr.camera.position;
     const fp = this.pos[this.focus];
@@ -173,8 +196,11 @@ export class RaceView {
     }
   }
 
-  private spawnDust(x: number, y: number, z: number, mud: boolean) {
+  private spawnDust(x: number, y: number, z: number, kind: 'weg' | 'matsch' | 'wasser' | 'schnee') {
+    const mud = kind !== 'weg';
     const i = this.dustNext;
+    const c = this.colors[kind];
+    this.dustColor.set([c.r, c.g, c.b], i * 3);
     this.dustNext = (this.dustNext + 1) % DUST_MAX;
     this.dustPos.set([x + (Math.random() - 0.5) * 0.6, y, z + (Math.random() - 0.5) * 0.6], i * 3);
     this.dustVel.set([(Math.random() - 0.5) * 1.2, 0.6 + Math.random() * (mud ? 2.5 : 0.8), (Math.random() - 0.5) * 1.2], i * 3);
@@ -199,6 +225,7 @@ export class RaceView {
     (this.dustGeo.attributes.position as THREE.BufferAttribute).needsUpdate = true;
     (this.dustGeo.attributes.aSize as THREE.BufferAttribute).needsUpdate = true;
     (this.dustGeo.attributes.aAlpha as THREE.BufferAttribute).needsUpdate = true;
+    (this.dustGeo.attributes.aColor as THREE.BufferAttribute).needsUpdate = true;
   }
 
   private updateCamera(alpha: number, dt: number, time: number) {
@@ -259,7 +286,11 @@ export class RaceView {
     this.effects.handleEvent(e, this.pos, this.focus);
     if (e.type === 'leapHit' || e.type === 'quake') {
       const p = this.pos[e.animal];
-      for (let i = 0; i < 24; i++) this.spawnDust(p.x + Math.cos(i) * 1.2, p.y + 0.2, p.z + Math.sin(i) * 1.2, false);
+      for (let i = 0; i < 24; i++) this.spawnDust(p.x + Math.cos(i) * 1.2, p.y + 0.2, p.z + Math.sin(i) * 1.2, 'weg');
+    }
+    if (e.type === 'splash') {
+      const p = this.pos[e.animal];
+      for (let i = 0; i < 14; i++) this.spawnDust(p.x + Math.cos(i) * 0.8, p.y + 0.5, p.z + Math.sin(i) * 0.8, 'wasser');
     }
   }
 
@@ -268,6 +299,7 @@ export class RaceView {
   }
 
   dispose() {
+    this.weather.dispose();
     this.gr.scene.remove(this.group);
     this.group.traverse((o) => {
       const m = o as THREE.Mesh;

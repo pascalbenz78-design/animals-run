@@ -2,7 +2,7 @@
  * Die zehn Superkräfte. Jede Kraft wird mit `startPower` ausgelöst und mit `updatePower`
  * pro Simulationsschritt fortgeführt. Alle Werte stehen in config/balance.ts (POWERS).
  */
-import { OBSTACLES, PHYSICS, POWERS } from '../config/balance';
+import { PHYSICS, POWERS } from '../config/balance';
 import type { RaceSim } from './simulation';
 import { wrapAngle } from './track';
 import { emptyInput, type AnimalState, type Input } from './types';
@@ -191,10 +191,10 @@ export function autopilotInput(sim: RaceSim, a: AnimalState): Input {
   let desiredD = t.racingLine[t.indexAt(a.s + look)];
   let approach = Math.max(5, a.speed * 0.8);
   const maxD = t.halfWidth - st.radius - 0.6;
-  for (const b of sim.bales) {
+  for (const b of sim.el.obstacles) {
     const ahead = t.delta(a.s, b.s);
     if (ahead < -2 || ahead > 28) continue;
-    const clear = OBSTACLES.baleRadius + st.radius + 1;
+    const clear = b.r + st.radius + 1;
     if (Math.abs(desiredD - b.d) < clear) {
       desiredD = b.d + (b.d + clear <= maxD && (a.d >= b.d || b.d - clear < -maxD) ? clear : -clear);
       approach = Math.min(approach, Math.max(3, ahead - 1));
@@ -207,8 +207,8 @@ export function autopilotInput(sim: RaceSim, a: AnimalState): Input {
   else if (diff < -0.03) inp.links = true;
   if (a.grounded && a.speed > 2) {
     const tApex = st.jumpVelocity / PHYSICS.gravity;
-    for (const hs of sim.hurdles) {
-      const ahead = t.delta(a.s, hs);
+    for (const hu of sim.el.hurdles) {
+      const ahead = t.delta(a.s, hu.s);
       if (ahead > 0 && ahead / a.speed <= tApex) inp.springen = !a.jumpHeld;
     }
   }

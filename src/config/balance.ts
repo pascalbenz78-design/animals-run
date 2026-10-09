@@ -23,6 +23,8 @@ export const RACE = {
   checkpointsPerLap: 8,
   /** Nach so vielen Sekunden wird ein gestürztes Tier am letzten Kontrollpunkt eingesetzt. */
   respawnDelay: 1.5,
+  /** Cup-Punkte für Platz 1–8 */
+  cupPoints: [15, 12, 10, 8, 6, 4, 2, 1],
   /** Höchstens so lange wird nach dem Zieleinlauf aller Menschen auf die Computer gewartet. */
   waitForOthersSeconds: 12,
 };
@@ -39,8 +41,8 @@ export const PHYSICS = {
   wallMargin: 0.2,
   /** Tempo-Verlust pro Sekunde, wenn man an der Bande entlangschrammt (Anteil). */
   wallScrapeLoss: 1.2,
-  /** Zusätzlicher Haftungs-Faktor während eines Schubs (mal Schub-Stärke). */
-  boostGrip: 1.2,
+  /** Zusätzliche Kurvenhaftung (m/s²) während eines Schubs, pro 100 % Schub – für alle Tiere gleich viel. */
+  boostGripAdd: 12,
   /** Wie stark Tiere einander wegstossen (0–1). */
   bumpStrength: 0.6,
 };
@@ -48,7 +50,7 @@ export const PHYSICS = {
 /** Umrechnung der Grundwerte (Skala 1–5) in Spielwerte. Index 0 bleibt ungenutzt. */
 export const STAT_SCALE = {
   /** Höchsttempo in m/s. */
-  topSpeed: [0, 14.6, 15.1, 15.6, 16.1, 16.6],
+  topSpeed: [0, 15.0, 15.4, 15.6, 16.1, 16.6],
   /** Beschleunigung in m/s². */
   accel: [0, 3.5, 4.5, 5.8, 7.4, 9.5],
   /** Sprung-Startgeschwindigkeit in m/s (Sprunghöhe = v² / 2g). */
@@ -58,13 +60,17 @@ export const STAT_SCALE = {
   /** Drehrate in rad/s bei langsamem Tempo. */
   turnRate: [0, 1.8, 2.0, 2.3, 2.6, 3.0],
   /** Bodenhaftung in Kurven (m/s²): Drehrate höchstens Haftung / Tempo. Kleiner = grösserer Kurvenradius. */
-  grip: [0, 7.0, 8.5, 9.2, 10.4, 11.5],
+  grip: [0, 7.6, 9.1, 9.6, 10.6, 10.9],
 };
 
 export const ENERGY = {
   max: 100,
-  /** Verbrauch pro Sekunde bei vollem Tempo. */
-  drainPerSecond: 1.6,
+  /**
+   * Verbrauch pro Sekunde bei vollem Tempo: ein voller Tank reicht ca. 38 s.
+   * Jede Strecke hat 2 Ladestationen pro Runde (höchstens ca. 22 s auseinander):
+   * Wer eine verpasst, wird langsamer; wer zwei verpasst, läuft auf Reserve.
+   */
+  drainPerSecond: 2.6,
   /** Faktor bergauf (Steigung > uphillSlope). */
   uphillFactor: 1.6,
   uphillSlope: 0.04,
@@ -104,7 +110,7 @@ export const BODY_RADIUS = {
 
 /** Computergegner. */
 export const AI: {
-  levels: Record<'leicht' | 'mittel' | 'schwer', { lineNoise: number; speedFactor: number; jumpError: number; jumpMissChance: number; boltSeek: number; powerSkill: 'zufall' | 'gezielt' | 'taktisch'; dodgeQuake: number; avoidHazards: boolean }>;
+  levels: Record<'leicht' | 'mittel' | 'schwer', { lineNoise: number; speedFactor: number; jumpError: number; jumpMissChance: number; boltSeek: number; powerSkill: 'zufall' | 'gezielt' | 'taktisch'; dodgeQuake: number; avoidHazards: boolean; useShortcuts: number }>;
   lookAheadBase: number;
   lookAheadPerSpeed: number;
   boltSeekEnergy: number;
@@ -112,9 +118,9 @@ export const AI: {
   rubberBandPerPlace: number;
 } = {
   levels: {
-    leicht: { lineNoise: 2.0, speedFactor: 0.9, jumpError: 0.14, jumpMissChance: 0.25, boltSeek: 0.3, powerSkill: 'zufall', dodgeQuake: 0, avoidHazards: false },
-    mittel: { lineNoise: 0.9, speedFactor: 0.97, jumpError: 0.06, jumpMissChance: 0.06, boltSeek: 0.85, powerSkill: 'gezielt', dodgeQuake: 0.45, avoidHazards: false },
-    schwer: { lineNoise: 0.35, speedFactor: 1.0, jumpError: 0.03, jumpMissChance: 0.01, boltSeek: 1, powerSkill: 'taktisch', dodgeQuake: 0.9, avoidHazards: true },
+    leicht: { lineNoise: 2.0, speedFactor: 0.9, jumpError: 0.14, jumpMissChance: 0.25, boltSeek: 0.3, powerSkill: 'zufall', dodgeQuake: 0, avoidHazards: false, useShortcuts: 0 },
+    mittel: { lineNoise: 0.9, speedFactor: 0.97, jumpError: 0.06, jumpMissChance: 0.06, boltSeek: 0.85, powerSkill: 'gezielt', dodgeQuake: 0.45, avoidHazards: false, useShortcuts: 0.5 },
+    schwer: { lineNoise: 0.35, speedFactor: 1.0, jumpError: 0.03, jumpMissChance: 0.01, boltSeek: 1, powerSkill: 'taktisch', dodgeQuake: 0.9, avoidHazards: true, useShortcuts: 1 },
   },
   /** Vorausschau zur Ideallinie: fester Teil + Anteil der Geschwindigkeit. */
   lookAheadBase: 6,
@@ -205,4 +211,36 @@ export const ITEMS = {
     [0.5, 0.4, 0.1, 0.0],
     [0.55, 0.4, 0.05, 0.0],
   ],
+};
+
+/** Streckenelemente (Phase 3). */
+export const ELEMENTS = {
+  /** Höhe der Hürdenarten */
+  hurdleHeight: { huerde: 0.85, oxer: 1.0, steilwand: 1.15, zaun: 0.9, stamm: 0.7 },
+  /** Radius und Höhe der runden Hindernisse */
+  obstacle: {
+    heuballen: { r: 1.25, h: 1.3 },
+    stein: { r: 0.9, h: 0.9 },
+    kaktus: { r: 0.7, h: 2.2 },
+    sandburg: { r: 1.1, h: 1.0 },
+    schneeball: { r: 1.0, h: 1.9 },
+    fels: { r: 1.4, h: 1.6 },
+    baumstumpf: { r: 0.8, h: 0.7 },
+    gluehfels: { r: 1.0, h: 1.2 },
+  },
+  /** Tempo-Faktor je Untergrund (Trittsicherheit mildert Matsch, Eis und Sand) */
+  surfaceSpeed: { matsch: 0.62, wasser: 0.7, sand: 0.84, eis: 1.0 },
+  /** Eis: weniger Haftung und Beschleunigung, man rutscht weiter */
+  ice: { grip: 0.42, accel: 0.6, coast: 0.25, slide: 2.2 },
+  /** Kleine Tiere (Radius bis hier, d. h. der Hamster) passen durch enge Lücken und Abkürzungen «klein» */
+  smallRadius: 0.5,
+  hoop: { radius: 1.3, minAlt: 0.45, boost: 1.25, duration: 1.3 },
+  ramp: { schanze: 11, duene: 8.5, geysir: 13 },
+  geyser: { period: 4.5, active: 1.3 },
+  gate: { stumble: 0.5 },
+  log: { height: 0.75, radius: 0.55 },
+  /** Windradflügel: fegt knapp über den Boden – man kann darüber springen */
+  spinner: { height: 0.7, width: 0.45, immunity: 1.4 },
+  avalanche: { warn: 2.0, sweep: 2.6, band: 2.2, stun: 1.5 },
+  shortcut: { width: 5 },
 };

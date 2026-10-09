@@ -47,6 +47,8 @@ export class EffectsView {
   private readonly traps: THREE.InstancedMesh;
   private readonly boxes: THREE.InstancedMesh;
   private readonly bones: THREE.InstancedMesh;
+  /** Laubhaufen über versteckten Item-Kisten */
+  private readonly leaves: THREE.InstancedMesh;
   private readonly iconSprites: THREE.Sprite[] = [];
   private readonly iconMat: THREE.SpriteMaterial;
   private iconOwner = -1;
@@ -135,6 +137,14 @@ export class EffectsView {
       Math.max(1, sim.itemBoxes.length),
     );
     this.boxes.castShadow = true;
+    const leafGeo = mesh([
+      part(G.dodeca(0.9), 0xd8702a, { scale: [1.3, 0.55, 1.3] }),
+      part(G.dodeca(0.6), 0xe8a032, { pos: [0.4, 0.25, 0.2], scale: [1.2, 0.6, 1.2] }),
+      part(G.dodeca(0.5), 0xb5401f, { pos: [-0.4, 0.2, -0.2], scale: [1.2, 0.6, 1.2] }),
+    ]).geometry;
+    this.leaves = new THREE.InstancedMesh(leafGeo, new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true }), Math.max(1, sim.itemBoxes.length));
+    this.leaves.receiveShadow = true;
+    this.group.add(this.leaves);
 
     // Knochenspur (Spürnase)
     const boneGeo = mesh([
@@ -293,7 +303,14 @@ export class EffectsView {
     const tmp = { x: 0, y: 0, z: 0 };
     sim.itemBoxes.forEach((b, i) => {
       t.pointAt(b.s, b.d, tmp);
-      const sc = b.timer <= 0 ? 1 : Math.max(0, 1 - b.timer / 0.4);
+      // Versteckt: Laubhaufen statt Kiste (eingesammelt = flach gedrückt)
+      this.dummy.position.set(tmp.x, tmp.y + 0.3, tmp.z);
+      this.dummy.rotation.set(0, i * 1.3, 0);
+      if (b.hidden) this.dummy.scale.set(1, b.timer > 0 ? 0.35 : 1, 1);
+      else this.dummy.scale.setScalar(0);
+      this.dummy.updateMatrix();
+      this.leaves.setMatrixAt(i, this.dummy.matrix);
+      const sc = b.hidden ? 0 : b.timer <= 0 ? 1 : Math.max(0, 1 - b.timer / 0.4);
       this.dummy.position.set(tmp.x, tmp.y + 1.1 + Math.sin(time * 2.5 + i) * 0.15, tmp.z);
       this.dummy.rotation.set(0.5, time * 1.6 + i, 0.3);
       this.dummy.scale.setScalar(sc);
@@ -301,17 +318,50 @@ export class EffectsView {
       this.boxes.setMatrixAt(i, this.dummy.matrix);
     });
     this.boxes.instanceMatrix.needsUpdate = true;
+    this.leaves.instanceMatrix.needsUpdate = true;
 
-    // Knochenspur vor Tira (Spürnase)
+    // Knochenspur vor Tira (Spürnase): zur nächsten Abkürzung, sonst entlang der Ideallinie
     let nb = 0;
     for (const a of sim.animals) {
       if (a.active !== 'spuernase') continue;
+      const el = sim.el;
+      let target = -1;
+      for (let k = 0; k < el.shortcuts.length; k++) {
+        const ahead = t.delta(a.s, el.shortcuts[k].fromS);
+        if (ahead > 0 && ahead < 90 && (target < 0 || ahead < t.delta(a.s, el.shortcuts[target].fromS))) target = k;
+      }
       for (let k = 1; k <= 12 && nb < MAX_BONES; k++) {
-        const s = a.s + k * (POWERS.spuernase.trailLength / 12);
-        const d = t.racingLine[t.indexAt(s)];
-        t.pointAt(s, d, tmp);
-        this.dummy.position.set(tmp.x, tmp.y + 0.12 + Math.sin(time * 4 + k) * 0.05, tmp.z);
-        this.dummy.rotation.set(0, Math.PI / 2 - t.headingAt(s) + 0.6, 0);
+        let x: number;
+        let z: number;
+        let yaw: number;
+        if (target >= 0) {
+          const sc = el.shortcuts[target];
+          const ahead = t.delta(a.s, sc.fromS);
+          const total = ahead + sc.length * 0.6;
+          const along = (k / 12) * total;
+          if (along < ahead) {
+            const s = a.s + along;
+            const f = along / Math.max(1, ahead);
+            t.pointAt(s, a.d + (sc.def.side * (t.halfWidth - 1) - a.d) * f, tmp);
+            x = tmp.x;
+            z = tmp.z;
+            yaw = Math.PI / 2 - t.headingAt(s);
+          } else {
+            const q = el.shortcutPoint(target, along - ahead);
+            x = q.x;
+            z = q.z;
+            yaw = k;
+          }
+          tmp.y = t.heightAt(a.s + Math.min(along, ahead));
+        } else {
+          const s = a.s + k * (POWERS.spuernase.trailLength / 12);
+          t.pointAt(s, t.racingLine[t.indexAt(s)], tmp);
+          x = tmp.x;
+          z = tmp.z;
+          yaw = Math.PI / 2 - t.headingAt(s);
+        }
+        this.dummy.position.set(x, tmp.y + 0.12 + Math.sin(time * 4 + k) * 0.05, z);
+        this.dummy.rotation.set(0, yaw + 0.6, 0);
         this.dummy.scale.setScalar(1);
         this.dummy.updateMatrix();
         this.bones.setMatrixAt(nb++, this.dummy.matrix);

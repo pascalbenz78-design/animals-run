@@ -3,16 +3,16 @@
  * Kennt weder Darstellung noch Eingabegeräte – jedes Tier bekommt pro Schritt ein Input-Objekt.
  * Alle Zustände sind reine Daten (für Mehrspieler übertragbar), Zufall nur über den Sim-Zufallsgenerator.
  */
-import { AI, BODY_RADIUS, EFFECTS, ENERGY, ICONS, ITEMS, OBSTACLES, PHYSICS, POWERS, RACE, SIM_DT, STAT_SCALE } from '../config/balance';
+import { AI, BODY_RADIUS, EFFECTS, ELEMENTS, ENERGY, ICONS, ITEMS, OBSTACLES, PHYSICS, POWERS, RACE, SIM_DT, STAT_SCALE } from '../config/balance';
 import { getAnimal, SPECIES_STATS, type Species } from '../animals/animals';
 import type { TrackData } from '../tracks/types';
+import { Elements } from './elements';
 import { autopilotInput, startPower, updatePower } from './powers';
 import { mulberry32 } from './rng';
 import { Track, wrapAngle } from './track';
 import {
   ITEM_IDS,
   type AnimalState,
-  type Bale,
   type Bolt,
   type Entrant,
   type Hazard,
@@ -57,22 +57,14 @@ export function deriveStats(animalId: string): DerivedStats {
   };
 }
 
-interface MudZone {
-  s: number;
-  length: number;
-  d0: number;
-  d1: number;
-}
-
 export class RaceSim {
   readonly track: Track;
   readonly laps: number;
   readonly animals: AnimalState[] = [];
   readonly stats: DerivedStats[] = [];
   readonly bolts: Bolt[] = [];
-  readonly bales: Bale[] = [];
-  readonly hurdles: number[] = [];
-  readonly mud: MudZone[] = [];
+  /** Streckenelemente (Untergründe, Hürden, Hindernisse, bewegte Teile, Abkürzungen) */
+  readonly el: Elements;
   readonly iconPoints: IconPoint[] = [];
   readonly itemBoxes: ItemBox[] = [];
   readonly hazards: Hazard[] = [];
@@ -90,6 +82,8 @@ export class RaceSim {
   private bestHumanPlace = 0;
   private doneTimer = -1;
   private readonly cpSpacing: number;
+  /** Höchste Runde im Feld (für Ereignisse wie Lawinen ab Runde 3) */
+  leaderLap = 1;
 
   constructor(trackData: TrackData | Track, entrants: Entrant[], laps = RACE.laps, seed = 1) {
     this.track = trackData instanceof Track ? trackData : new Track(trackData);
@@ -99,16 +93,9 @@ export class RaceSim {
     const L = t.length;
     this.cpSpacing = L / RACE.checkpointsPerLap;
 
-    for (const h of t.data.hurdles) this.hurdles.push(h.s * L);
-    this.hurdleHit.length = this.hurdles.length;
+    this.el = new Elements(t, t.data);
+    this.hurdleHit.length = this.el.hurdles.length;
     this.hurdleHit.fill(-99);
-    for (const b of t.data.bales) {
-      const p = t.pointAt(b.s * L, b.d);
-      this.bales.push({ x: p.x, z: p.z, s: b.s * L, d: b.d });
-    }
-    for (const m of t.data.mud) {
-      this.mud.push({ s: m.s * L - m.length / 2, length: m.length, d0: m.d - m.width / 2, d1: m.d + m.width / 2 });
-    }
     for (const st of t.data.bolts) {
       for (const d of st.ds) {
         const p = t.pointAt(st.s * L, d);
@@ -118,7 +105,7 @@ export class RaceSim {
     for (const row of t.data.items) {
       for (const d of row.ds) {
         const p = t.pointAt(row.s * L, d);
-        this.itemBoxes.push({ x: p.x, z: p.z, s: row.s * L, d, timer: 0 });
+        this.itemBoxes.push({ x: p.x, z: p.z, s: row.s * L, d, timer: 0, hidden: !!row.hidden });
       }
     }
     // Icon-Punkte: normale Punkte plus automatisch verteilte Punkte der Aufholhilfe
@@ -198,6 +185,8 @@ export class RaceSim {
       if (racing) this.stepAnimal(a, this.stats[i], inputs[i], dt);
     }
     if (racing) {
+      this.leaderLap = Math.max(...this.animals.map((a) => a.lap));
+      this.updateAvalanches();
       for (const a of this.animals) updatePower(this, a, dt);
       this.collideAnimals();
       this.updatePlaces();
@@ -238,11 +227,59 @@ export class RaceSim {
     // Mäusejagd: Autopilot übernimmt die Steuerung
     const inp = a.active === 'maeusejagd' ? autopilotInput(this, a) : rawInput;
     const stunned = a.stun > 0;
-    const passThrough = a.active === 'spuernase' || a.active === 'hamsterkugel';
+    const digging = a.active === 'spuernase';
+    const ball = a.active === 'hamsterkugel';
+    const passThrough = digging || ball;
 
-    // Untergrund und Energie bestimmen das erlaubte Tempo
-    a.inMud = !passThrough && this.inMud(a.s, a.d);
-    const surface = a.inMud ? 1 - (1 - OBSTACLES.mudFactor) * (1 - st.surefoot) : 1;
+    // Untergrund (Brücke, Wasser, Eis, Sand, Matsch, Lava …)
+    const el = this.el;
+    let surface = '';
+    let current = 0;
+    const bridge = a.shortcut < 0 ? el.bridgeAt(a.s) : -1;
+    if (bridge >= 0) {
+      const b = el.data.bridges![bridge];
+      const onBridge = Math.abs(a.d - el.bridgeOffset(bridge, this.time)) <= b.width / 2 - 0.2;
+      if (!onBridge) {
+        if (b.below === 'schlucht' && a.alt < 0.3) {
+          this.fall(a);
+          return;
+        }
+        surface = 'tiefwasser';
+      }
+    } else if (a.shortcut < 0 && !digging) {
+      const z = el.surfaceAt(a.s, a.d);
+      if (z) {
+        surface = z.type;
+        current = z.current;
+      }
+    }
+    if ((surface === 'lava' || surface === 'loch') && a.alt < 0.15) {
+      this.fall(a);
+      return;
+    }
+    if (ball && surface !== 'lava' && surface !== 'loch') surface = '';
+    const wasSwimming = a.swimming;
+    a.swimming = surface === 'tiefwasser';
+    if (a.swimming && !wasSwimming) this.events.push({ type: 'splash', animal: a.id });
+    if (surface === 'wasser' && a.surface !== 'wasser' && a.alt < 0.2) this.events.push({ type: 'splash', animal: a.id });
+    a.surface = surface;
+    a.inMud = surface === 'matsch';
+    const onIce = surface === 'eis';
+    const sure = st.surefoot;
+    let surfaceFactor = 1;
+    if (surface === 'matsch' || surface === 'wasser' || surface === 'sand') {
+      const f = ELEMENTS.surfaceSpeed[surface];
+      surfaceFactor = 1 - (1 - f) * (surface === 'wasser' ? 1 : 1 - sure);
+    }
+    if (a.swimming) {
+      // Im tiefen Wasser kein Sprung; das Tempo hängt vom Wert «Schwimmen» ab
+      surfaceFactor = st.swimFactor;
+      a.alt = 0;
+      a.vy = 0;
+      a.grounded = true;
+    }
+    const iceK = onIce ? 1 - (1 - ELEMENTS.ice.grip) * (1 - sure) : 1;
+
     const energyFactor =
       a.energy >= ENERGY.slowThreshold
         ? 1
@@ -251,22 +288,23 @@ export class RaceSim {
     // Leichte Aufholhilfe für Computergegner, die hinter dem besten Menschen liegen
     if (!a.human && this.bestHumanPlace > 0 && a.place > this.bestHumanPlace)
       aiFactor *= 1 + Math.min(4, a.place - this.bestHumanPlace) * AI.rubberBandPerPlace;
-    let maxSpeed = st.topSpeed * surface * energyFactor * aiFactor;
+    let maxSpeed = st.topSpeed * surfaceFactor * energyFactor * aiFactor;
     if (a.boost > 0) maxSpeed *= a.boostFactor;
     if (a.slow > 0) maxSpeed *= a.slowFactor;
     if (a.spin > 0) maxSpeed *= EFFECTS.spinSpeed;
 
-    // Längsbewegung
+    // Längsbewegung (auf Eis langsamer anfahren und länger rutschen)
     if (stunned) {
       a.speed = Math.max(0, a.speed - PHYSICS.overSpeedDecel * 3 * dt);
     } else if (a.grounded) {
-      const accel = a.boost > 0 ? st.accel * 2.2 : st.accel;
+      let accel = a.boost > 0 ? st.accel * 2.2 : st.accel;
+      if (onIce) accel *= ELEMENTS.ice.accel + (1 - ELEMENTS.ice.accel) * sure;
       if (a.speed > maxSpeed) {
         a.speed = Math.max(maxSpeed, a.speed - PHYSICS.overSpeedDecel * dt);
       } else if (inp.vorwaerts && a.stumble <= 0) {
         a.speed = Math.min(maxSpeed, a.speed + accel * dt);
       } else {
-        a.speed = Math.max(0, a.speed - PHYSICS.coastDecel * dt);
+        a.speed = Math.max(0, a.speed - PHYSICS.coastDecel * (onIce ? ELEMENTS.ice.coast : 1) * dt);
       }
     }
 
@@ -274,7 +312,7 @@ export class RaceSim {
     const steer = stunned ? 0 : (inp.rechts ? 1 : 0) - (inp.links ? 1 : 0);
     if (steer !== 0) {
       // Während eines Schubs mehr Haftung, damit der Schub auch in Kurven wirkt
-      const grip = a.boost > 0 ? st.grip * a.boostFactor * PHYSICS.boostGrip : st.grip;
+      const grip = (a.boost > 0 ? st.grip + (a.boostFactor - 1) * PHYSICS.boostGripAdd : st.grip) * iceK;
       let w = Math.min(st.turnRate, grip / Math.max(0.1, a.speed));
       if (!a.grounded) w *= PHYSICS.airSteer;
       if (a.stumble > 0 || a.spin > 0) w *= 0.5;
@@ -282,18 +320,33 @@ export class RaceSim {
     }
     // Rutschen: Richtung schwankt
     if (a.spin > 0) a.heading = wrapAngle(a.heading + Math.sin(a.spin * 18) * 1.6 * dt);
+    // Auf Eis folgt die Bewegungsrichtung der Blickrichtung nur langsam
+    if (onIce && a.grounded) {
+      const rate = ELEMENTS.ice.slide * (1 + sure * 3);
+      a.moveHeading = wrapAngle(a.moveHeading + wrapAngle(a.heading - a.moveHeading) * Math.min(1, rate * dt));
+    } else a.moveHeading = a.heading;
 
-    // Springen (nur beim Drücken, nicht beim Halten). Nicht beim Buddeln.
-    if (inp.springen && !a.jumpHeld && a.grounded && a.stumble <= 0 && !stunned && a.active !== 'spuernase') {
+    // Springen (nur beim Drücken, nicht beim Halten). Nicht beim Buddeln oder Schwimmen.
+    if (inp.springen && !a.jumpHeld && a.grounded && a.stumble <= 0 && !stunned && !digging && !a.swimming) {
       a.vy = st.jumpVelocity;
       a.grounded = false;
       this.events.push({ type: 'jump', animal: a.id });
     }
     a.jumpHeld = inp.springen;
 
-    // Bewegen
-    a.x += Math.cos(a.heading) * a.speed * dt;
-    a.z += Math.sin(a.heading) * a.speed * dt;
+    // Bewegen (plus Strömung im Wasser)
+    a.x += Math.cos(a.moveHeading) * a.speed * dt;
+    a.z += Math.sin(a.moveHeading) * a.speed * dt;
+    if (current !== 0) {
+      a.x += t.tx[a.idx] * current * dt;
+      a.z += t.tz[a.idx] * current * dt;
+    }
+    // Schaukelnde Brücke nimmt die Tiere seitlich mit
+    if (bridge >= 0 && surface === '') {
+      const shift = el.bridgeOffset(bridge, this.time) - el.bridgeOffset(bridge, this.time - dt);
+      a.x += t.tz[a.idx] * shift;
+      a.z += -t.tx[a.idx] * shift;
+    }
     if (!a.grounded) {
       a.vy -= PHYSICS.gravity * dt;
       a.alt += a.vy * dt;
@@ -305,30 +358,33 @@ export class RaceSim {
       }
     }
 
-    // Auf Strecke projizieren
+    // Auf Strecke projizieren (oder in der Abkürzung weiterlaufen)
     const prevS = a.s;
-    const proj = t.project(a.x, a.z, a.idx);
-    a.idx = proj.idx;
-    a.s = proj.s;
-    a.d = proj.d;
-
-    // Bande (Zaun): zurückschieben, Richtung entlang der Strecke drehen, Tempo verlieren
-    const limit = t.halfWidth - st.radius - PHYSICS.wallMargin;
-    if (Math.abs(a.d) > limit) {
-      const side = Math.sign(a.d);
-      const push = Math.abs(a.d) - limit;
-      const nx = t.tz[a.idx];
-      const nz = -t.tx[a.idx];
-      a.x -= nx * push * side;
-      a.z -= nz * push * side;
-      a.d = side * limit;
-      const trackHeading = Math.atan2(t.tz[a.idx], t.tx[a.idx]);
-      const rel = wrapAngle(a.heading - trackHeading);
-      // Läuft das Tier in die Bande hinein? Dann sanft entlang lenken.
-      if (Math.sign(-rel) === side && Math.abs(rel) < Math.PI / 2) {
-        a.heading = wrapAngle(trackHeading + rel * 0.85);
+    if (a.shortcut >= 0) this.stepShortcut(a, st);
+    else {
+      const proj = t.project(a.x, a.z, a.idx);
+      a.idx = proj.idx;
+      a.s = proj.s;
+      a.d = proj.d;
+      // Bande (Zaun): zurückschieben – ausser beim Einstieg in eine Abkürzung
+      const limit = t.halfWidth - st.radius - PHYSICS.wallMargin;
+      if (Math.abs(a.d) > limit && !this.tryEnterShortcut(a, st)) {
+        const side = Math.sign(a.d);
+        const push = Math.abs(a.d) - limit;
+        const nx = t.tz[a.idx];
+        const nz = -t.tx[a.idx];
+        a.x -= nx * push * side;
+        a.z -= nz * push * side;
+        a.d = side * limit;
+        const trackHeading = Math.atan2(t.tz[a.idx], t.tx[a.idx]);
+        const rel = wrapAngle(a.heading - trackHeading);
+        // Läuft das Tier in die Bande hinein? Dann sanft entlang lenken.
+        if (Math.sign(-rel) === side && Math.abs(rel) < Math.PI / 2) {
+          a.heading = wrapAngle(trackHeading + rel * 0.85);
+          a.moveHeading = a.heading;
+        }
+        a.speed *= 1 - PHYSICS.wallScrapeLoss * dt * Math.min(1, Math.abs(rel) * 3);
       }
-      a.speed *= 1 - PHYSICS.wallScrapeLoss * dt * Math.min(1, Math.abs(rel) * 3);
     }
 
     // Distanz und Kontrollpunkte
@@ -339,9 +395,11 @@ export class RaceSim {
     // Energie
     let drain = ENERGY.drainPerSecond * Math.min(1, a.speed / st.topSpeed);
     if (t.slope[a.idx] > ENERGY.uphillSlope) drain *= ENERGY.uphillFactor;
+    if (a.swimming) drain *= ENERGY.swimFactor;
     a.energy = Math.max(0, a.energy - drain * dt);
 
-    if (!passThrough) this.hitObstacles(a, st, prevS);
+    this.crossElements(a, prevS, passThrough);
+    if (!passThrough && a.shortcut < 0) this.hitObstacles(a, st, prevS);
     this.collectBolts(a);
     this.collectIcons(a);
     this.collectItems(a);
@@ -352,37 +410,41 @@ export class RaceSim {
 
   private hitObstacles(a: AnimalState, st: DerivedStats, prevS: number) {
     const t = this.track;
+    const el = this.el;
     const prot = a.invuln > 0;
-    // Hürden: Beim Überqueren muss das Tier hoch genug sein
-    for (let h = 0; h < this.hurdles.length; h++) {
-      const hs = this.hurdles[h];
-      const before = t.delta(hs, prevS);
-      const after = t.delta(hs, a.s);
-      if (before < 0 && after >= 0 && after - before < 5 && a.alt < OBSTACLES.hurdleHeight && !prot) {
-        a.speed *= OBSTACLES.hurdleSpeedKeep;
-        a.stumble = OBSTACLES.hurdleStumble;
-        this.hurdleHit[h] = this.time;
-        this.events.push({ type: 'stumble', animal: a.id });
-      }
+    // Hürden: Beim Überqueren muss das Tier hoch genug sein (Hamster passen durch Lücken)
+    for (let h = 0; h < el.hurdles.length; h++) {
+      const hu = el.hurdles[h];
+      const before = t.delta(hu.s, prevS);
+      const after = t.delta(hu.s, a.s);
+      if (!(before < 0 && after >= 0 && after - before < 5) || a.alt >= hu.height || prot) continue;
+      if (hu.gap && st.radius <= 0.5 && a.d >= hu.gap[0] && a.d <= hu.gap[1]) continue;
+      a.speed *= OBSTACLES.hurdleSpeedKeep;
+      a.stumble = OBSTACLES.hurdleStumble;
+      this.hurdleHit[h] = this.time;
+      this.events.push({ type: 'stumble', animal: a.id });
     }
-    // Heuballen: rund, man kann darüber springen
-    for (const b of this.bales) {
+    // Runde Hindernisse (Heuballen, Steine, Kakteen …): ausweichen oder darüber springen
+    for (const b of el.obstacles) {
       const dx = a.x - b.x;
       const dz = a.z - b.z;
-      const r = OBSTACLES.baleRadius + st.radius;
+      const r = b.r + st.radius;
       const dd = dx * dx + dz * dz;
-      if (dd < r * r && a.alt < OBSTACLES.baleHeight) {
+      if (dd < r * r && a.alt < b.h) {
         const dist = Math.sqrt(dd) || 0.01;
         const nx = dx / dist;
         const nz = dz / dist;
         // mit kleinem Abstand hinausschieben, sonst bleibt das Tier am Rand hängen
         a.x = b.x + nx * (r + 0.05);
         a.z = b.z + nz * (r + 0.05);
-        // Richtung tangential zum Ballen drehen, damit das Tier nicht hängen bleibt
+        // Richtung tangential zum Hindernis drehen
         const fx = Math.cos(a.heading);
         const fz = Math.sin(a.heading);
         const into = fx * nx + fz * nz;
-        if (into < 0) a.heading = Math.atan2(fz - nz * into * 1.1, fx - nx * into * 1.1);
+        if (into < 0) {
+          a.heading = Math.atan2(fz - nz * into * 1.1, fx - nx * into * 1.1);
+          a.moveHeading = a.heading;
+        }
         if (a.stumble <= 0 && !prot && a.speed > 3) {
           a.speed *= OBSTACLES.baleSpeedKeep;
           a.stumble = OBSTACLES.baleStumble;
@@ -390,6 +452,152 @@ export class RaceSim {
         }
       }
     }
+    // Rollende Baumstämme
+    const logs = el.data.logs ?? [];
+    for (let i = 0; i < logs.length; i++) {
+      const rel = t.delta(el.logS(i, this.time), a.s);
+      if (Math.abs(rel) < ELEMENTS.log.radius + st.radius * 0.6 && a.alt < ELEMENTS.log.height && a.stumble <= 0 && !prot) {
+        a.speed *= OBSTACLES.hurdleSpeedKeep;
+        a.stumble = OBSTACLES.hurdleStumble;
+        this.events.push({ type: 'stumble', animal: a.id });
+      }
+    }
+    // Windräder: der Flügel fegt knapp über den Boden
+    const spinners = el.data.spinners ?? [];
+    for (let i = 0; i < spinners.length; i++) {
+      if (a.alt >= ELEMENTS.spinner.height || a.stumble > 0 || a.hitImmune > 0 || prot) continue;
+      const arm = el.spinnerArm(i, this.time);
+      const vx = arm.tx - arm.cx;
+      const vz = arm.tz - arm.cz;
+      const l2 = vx * vx + vz * vz;
+      const k = Math.max(0, Math.min(1, ((a.x - arm.cx) * vx + (a.z - arm.cz) * vz) / l2));
+      const qx = arm.cx + vx * k;
+      const qz = arm.cz + vz * k;
+      const dist = Math.hypot(a.x - qx, a.z - qz);
+      if (dist < ELEMENTS.spinner.width + st.radius) {
+        a.speed *= OBSTACLES.baleSpeedKeep;
+        a.stumble = OBSTACLES.baleStumble + 0.2;
+        a.hitImmune = ELEMENTS.spinner.immunity;
+        // Vom Flügel weggeschoben
+        a.x += ((a.x - qx) / (dist || 1)) * 0.8;
+        a.z += ((a.z - qz) / (dist || 1)) * 0.8;
+        this.events.push({ type: 'stumble', animal: a.id });
+      }
+    }
+  }
+
+  /** Reifen, Schanzen, Geysire und Tore beim Überqueren */
+  private crossElements(a: AnimalState, prevS: number, passThrough: boolean) {
+    if (a.shortcut >= 0) return;
+    const t = this.track;
+    const el = this.el;
+    const L = t.length;
+    const crossed = (s: number) => {
+      const before = t.delta(s, prevS);
+      const after = t.delta(s, a.s);
+      return before < 0 && after >= 0 && after - before < 5;
+    };
+    for (const h of el.data.hoops ?? []) {
+      if (crossed(h.s * L) && Math.abs(a.d - h.d) < ELEMENTS.hoop.radius && a.alt >= ELEMENTS.hoop.minAlt) {
+        this.giveBoost(a, ELEMENTS.hoop.boost, ELEMENTS.hoop.duration);
+        this.events.push({ type: 'hoop', animal: a.id });
+      }
+    }
+    const ramps = el.data.ramps ?? [];
+    for (let i = 0; i < ramps.length; i++) {
+      const r = ramps[i];
+      const kind = r.kind ?? 'schanze';
+      if (!a.grounded || a.swimming || a.active === 'spuernase' || Math.abs(a.d - r.d) > r.width / 2 || !crossed(r.s * L)) continue;
+      if (kind === 'geysir' && !el.geyserActive(this.time, i)) continue;
+      a.vy = ELEMENTS.ramp[kind];
+      a.grounded = false;
+      this.events.push({ type: 'ramp', animal: a.id });
+    }
+    const gates = el.data.gates ?? [];
+    for (let i = 0; i < gates.length; i++) {
+      if (a.active === 'spuernase' || el.gateOpen(i, this.time) || !crossed(gates[i].s * L)) continue;
+      // Tor zu: zurückprallen
+      a.x = a.prevX - Math.cos(a.heading) * 0.6;
+      a.z = a.prevZ - Math.sin(a.heading) * 0.6;
+      const proj = t.project(a.x, a.z, a.idx);
+      a.idx = proj.idx;
+      a.s = proj.s;
+      a.d = proj.d;
+      a.speed = 0;
+      if (!passThrough) a.stumble = ELEMENTS.gate.stumble;
+      this.events.push({ type: 'bump', animal: a.id });
+    }
+  }
+
+  /** Lawinen: Schneewalze fegt quer über die Bahn */
+  private updateAvalanches() {
+    const avs = this.el.data.avalanches ?? [];
+    const A = ELEMENTS.avalanche;
+    for (let i = 0; i < avs.length; i++) {
+      const st = this.el.avalanche(i, this.time, this.leaderLap);
+      if (st.front === null) continue;
+      const av = avs[i];
+      for (const a of this.animals) {
+        if (a.respawn > 0 || a.alt > 1.5 || a.shortcut >= 0) continue;
+        const rel = this.track.delta(av.s * this.track.length - av.length / 2, a.s);
+        if (rel < 0 || rel > av.length || Math.abs(a.d - st.front) > A.band) continue;
+        this.stunAnimal(a, A.stun, -1);
+      }
+    }
+  }
+
+  /** Abkürzung betreten, wenn das Tier an einem Einstieg über den Rand läuft */
+  private tryEnterShortcut(a: AnimalState, st: DerivedStats): boolean {
+    const el = this.el;
+    for (let k = 0; k < el.shortcuts.length; k++) {
+      const sc = el.shortcuts[k];
+      if (Math.sign(a.d) !== sc.def.side) continue;
+      const rel = this.track.delta(sc.fromS, a.s);
+      if (rel < -5 || rel > 6) continue;
+      if (!el.shortcutAllowed(k, st.radius, a.alt)) continue;
+      const p = el.projectShortcut(k, a.x, a.z);
+      if (p.e > ELEMENTS.shortcut.width / 2 + 1 || p.u > 0.25) continue;
+      a.shortcut = k;
+      a.scAlong = p.along;
+      return true;
+    }
+    return false;
+  }
+
+  /** In der Abkürzung: auf dem Weg halten, Fortschritt auf die Hauptstrecke umrechnen */
+  private stepShortcut(a: AnimalState, st: DerivedStats) {
+    const el = this.el;
+    const t = this.track;
+    const k = a.shortcut;
+    const sc = el.shortcuts[k];
+    const p = el.projectShortcut(k, a.x, a.z);
+    const maxE = ELEMENTS.shortcut.width / 2 - st.radius * 0.5;
+    if (p.e > maxE) {
+      const q = el.shortcutPoint(k, p.along);
+      a.x = q.x + ((a.x - q.x) * maxE) / p.e;
+      a.z = q.z + ((a.z - q.z) * maxE) / p.e;
+      a.speed *= 1 - 0.8 * SIM_DT;
+    }
+    a.scAlong = p.along;
+    a.s = t.wrap(sc.fromS + p.u * sc.skip);
+    a.idx = t.indexAt(a.s);
+    a.d = sc.def.side * t.halfWidth;
+    // Ausstieg am Ende (oder rückwärts am Anfang)
+    if (p.u > 0.97 || p.u < 0.01) {
+      const proj = t.project(a.x, a.z, t.indexAt(p.u > 0.5 ? sc.toS : sc.fromS));
+      if (Math.abs(proj.d) < t.halfWidth + 1) {
+        a.shortcut = -1;
+        a.idx = proj.idx;
+        a.s = proj.s;
+        a.d = proj.d;
+      }
+    }
+  }
+
+  /** In Lava, ein Loch oder eine Schlucht gefallen */
+  private fall(a: AnimalState) {
+    this.events.push({ type: 'fall', animal: a.id });
+    this.startRespawn(a);
   }
 
   private collectBolts(a: AnimalState) {
@@ -546,14 +754,6 @@ export class RaceSim {
     return true;
   }
 
-  private inMud(s: number, d: number): boolean {
-    for (const m of this.mud) {
-      const rel = this.track.delta(m.s, s);
-      if (rel >= 0 && rel <= m.length && d >= m.d0 && d <= m.d1) return true;
-    }
-    return false;
-  }
-
   private updateCheckpoints(a: AnimalState) {
     const K = RACE.checkpointsPerLap;
     const total = this.laps * K;
@@ -586,7 +786,21 @@ export class RaceSim {
 
   private respawnAt(a: AnimalState) {
     const t = this.track;
-    const dist = a.cpPassed * this.cpSpacing;
+    // Am letzten Kontrollpunkt – aber nie in Lava, Wasser oder auf einer Brücke
+    // Auch keine Spalte direkt davor: aus dem Stand kommt man nicht darüber
+    let dist = a.cpPassed * this.cpSpacing;
+    const unsafe = (s: number) => {
+      const sz = this.el.surfaceAt(t.wrap(s), 0);
+      return (sz && sz.type !== 'sand' && sz.type !== 'matsch') || this.el.bridgeAt(t.wrap(s)) >= 0;
+    };
+    const deadlyAhead = (s: number) => {
+      for (let k = 0; k <= 12; k += 1) {
+        const sz = this.el.surfaceAt(t.wrap(s + k), 0);
+        if (sz && (sz.type === 'lava' || sz.type === 'loch')) return true;
+      }
+      return false;
+    };
+    for (let k = 0; k < 60 && (unsafe(dist) || deadlyAhead(dist)); k++) dist += 2;
     const s = t.wrap(dist);
     const p = t.pointAt(s, 0);
     a.x = p.x;
@@ -597,9 +811,12 @@ export class RaceSim {
     a.vy = 0;
     a.grounded = true;
     a.heading = t.headingAt(s);
+    a.moveHeading = a.heading;
     a.prevHeading = a.heading;
     a.speed = 0;
     a.totalDist = dist;
+    a.shortcut = -1;
+    a.swimming = false;
     const proj = t.project(p.x, p.z);
     a.idx = proj.idx;
     a.s = proj.s;
@@ -718,6 +935,7 @@ function newAnimal(
     alt: 0,
     vy: 0,
     heading,
+    moveHeading: heading,
     speed: 0,
     grounded: true,
     prevX: x,
@@ -742,6 +960,10 @@ function newAnimal(
     jumpHeld: false,
     powerHeld: false,
     inMud: false,
+    surface: '',
+    swimming: false,
+    shortcut: -1,
+    scAlong: 0,
     stride: id * 1.7,
     power: getAnimal(e.animalId).power,
     icons: 0,

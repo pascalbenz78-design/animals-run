@@ -17,6 +17,7 @@ uniform vec3 uTop;
 uniform vec3 uHorizon;
 uniform vec3 uSunDir;
 uniform vec3 uSunColor;
+uniform float uNight;
 varying vec3 vDir;
 void main() {
   vec3 d = normalize(vDir);
@@ -24,6 +25,12 @@ void main() {
   vec3 col = mix(uHorizon, uTop, pow(h, 0.55));
   float sun = max(dot(d, normalize(uSunDir)), 0.0);
   col += uSunColor * (pow(sun, 600.0) * 1.5 + pow(sun, 12.0) * 0.18);
+  if (uNight > 0.5) {
+    // Sterne: zufällige helle Punkte am Nachthimmel
+    vec3 p = floor(d * 260.0);
+    float h = fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 43758.5453);
+    col += vec3(step(0.9965, h)) * smoothstep(0.05, 0.4, d.y) * 1.3;
+  }
   if (d.y < 0.0) col = uHorizon;
   gl_FragColor = vec4(col, 1.0);
   #include <tonemapping_fragment>
@@ -74,6 +81,7 @@ export class GameRenderer {
           uHorizon: { value: new THREE.Color() },
           uSunDir: { value: new THREE.Vector3(0, 1, 0) },
           uSunColor: { value: new THREE.Color() },
+          uNight: { value: 0 },
         },
       }),
     );
@@ -135,6 +143,11 @@ export class GameRenderer {
     u.uSunColor.value.setHex(th.sunColor);
     const dir = new THREE.Vector3(...th.sunDir).normalize();
     u.uSunDir.value.copy(dir);
+    u.uNight.value = th.night ? 1 : 0;
+    // Wolken: nachts dunkel
+    const cm = this.clouds.material as THREE.MeshLambertMaterial;
+    cm.color.setHex(th.night ? 0x2a2230 : 0xffffff);
+    cm.emissive.setHex(th.night ? 0x100810 : 0xbbbbbb);
     this.sunOffset.copy(dir).multiplyScalar(130);
     this.scene.fog = new THREE.Fog(th.fog, th.fogNear, th.fogFar);
     this.scene.background = new THREE.Color(th.skyHorizon);
