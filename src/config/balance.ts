@@ -39,6 +39,8 @@ export const PHYSICS = {
   wallMargin: 0.2,
   /** Tempo-Verlust pro Sekunde, wenn man an der Bande entlangschrammt (Anteil). */
   wallScrapeLoss: 1.2,
+  /** Zusätzlicher Haftungs-Faktor während eines Schubs (mal Schub-Stärke). */
+  boostGrip: 1.2,
   /** Wie stark Tiere einander wegstossen (0–1). */
   bumpStrength: 0.6,
 };

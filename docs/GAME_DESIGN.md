@@ -288,3 +288,23 @@ Hier stehen Entscheide, die während der Entwicklung getroffen wurden (mit Begr�
 10. **Superkraft-Taste** ist in Phase 1 ausgeblendet (Superkräfte kommen in Phase 2), damit nichts so tut, als wäre es fertig. Ton und Musik folgen in Phase 5.
 12. **Rundenzeit-Anzeige:** Beim Überqueren der Ziellinie erscheinen für 3,5 s die Rundenzeit, die eigene Bestzeit auf dieser Strecke (Runden-Rekord) und der Abstand dazu; bei einem neuen Rekord zusätzlich die bisherige Bestzeit. Rekorde gelten pro Strecke (unabhängig vom Tier) und werden sofort gespeichert. Alte Bestzeiten der 80-s-Strecke wurden verworfen.
 11. **Testhilfen** in der Adresse: `?fps` (Bildrate), `?test` (Computer steuert auch das eigene Tier), `?timescale=5` (Simulation schneller). Dazu der kopflose Renn-Test `npm run sim`.
+
+### Phase 2
+
+13. **Icon-Punkte und Aufholhilfe.** Pro Runde gibt es 3 normale Icon-Punkte. Dazu kommen bis zu 9 zusätzliche Punkte, die gleichmässig über die Runde verteilt sind. Platz 1 sieht keine davon, Platz 8 alle (`ICONS.extraByPlace`), also rund viermal so viele Icons. Jedes Tier sieht nur seine eigenen Icons; ein eingesammeltes Icon erscheint für dieses Tier nach 10 s wieder.
+14. **Superkräfte** sind so umgesetzt wie beschrieben. Zusätzlich gilt:
+    - Wer gestoppt wird, ist danach 1 s lang geschützt, damit man nicht mehrfach hintereinander getroffen wird.
+    - Furiels Sprung-Attacke landet automatisch beim Ziel. Gibt es kein Ziel in Reichweite, wird sie zu einem grossen Sprung mit Schub.
+    - Rays Äpfel fallen seitlich versetzt, damit sie die Bahn wirklich blockieren. Ray selbst rutscht auf den eigenen Äpfeln nicht aus.
+    - Tiras «Spürnase» zeigt die Knochenspur entlang der Ideallinie. Abkürzungen gibt es erst ab Phase 3; dann führt die Spur dorthin.
+    - Die Hamsterkugel ist nicht unverwundbar (das steht so nicht im Auftrag), rollt aber durch Hindernisse und Fallen.
+15. **Schub und Kurven:** Während eines Schubs (Turbo, Superkraft) hat ein Tier mehr Kurvenhaftung (`PHYSICS.boostGrip`). Sonst würde der Schub in Kurven nichts bringen, besonders bei Pferden.
+16. **Items:** Die Kisten stehen in 3 Reihen pro Runde und erscheinen nach 3 s wieder. Die Wahrscheinlichkeiten je Platz stehen in `ITEMS.odds`.
+17. **Computergegner:**
+    - **Leicht** löst die Superkraft nach einer zufälligen Wartezeit aus.
+    - **Mittel** wartet auf passende Momente (z. B. Gegner in Reichweite) und springt dem Erdbeben in 45 % der Fälle aus.
+    - **Schwer** handelt taktisch (z. B. Erdbeben erst bei mindestens 3 Gegnern), springt dem Erdbeben fast immer aus und weicht Äpfeln und Matschfallen aus.
+    - Zusätzlich gibt es eine leichte Aufholhilfe: +0,8 % Tempo pro Platz Rückstand auf den besten Menschen (`AI.rubberBandPerPlace`).
+18. **Balance-Test** (`npm run sim -- 150`, Stufe mittel, Bauernhof): Alle Tiere liegen im Schnitt zwischen Platz 3,8 und 5,1. Aramis gewinnt mit 23 % etwas häufiger. Die Feinabstimmung erfolgt, sobald alle Strecken da sind (Phase 3/5).
+19. **Strecke** nochmals leicht gekürzt (500 m), weil Superkräfte und Items die Runden verlängern. Median-Runde: ca. 35 s.
+20. **Töne** für die Superkräfte folgen mit dem gesamten Ton in Phase 5.

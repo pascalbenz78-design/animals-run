@@ -13,7 +13,7 @@ npx tsx scripts/trackinfo.ts bauernhof   # Kurvenradien/Höhen einer Strecke (zu
 npx tsx scripts/diag.ts                  # Details eines Rennens pro Tier
 ```
 
-Testhilfen im Browser: `?fps`, `?test` (Autopilot fürs eigene Tier), `?timescale=5`; `window.__game` (state, session, startRace()).
+Testhilfen im Browser: `?fps`, `?test` (Autopilot fürs eigene Tier), `?timescale=5`; `window.__game` (state, session, startRace(), advance(sekunden) spult ohne Bildschirm-Takt vor, usePower() löst die eigene Superkraft aus).
 
 ## Regeln
 
@@ -45,16 +45,22 @@ scripts        simrace.ts, diag.ts, trackinfo.ts
 
 ## Stand der Phasen
 
-- [x] **Phase 1 – Grundgerüst und Fahrgefühl** (abgeschlossen, wartet auf Abnahme)
+- [x] **Phase 1 – Grundgerüst und Fahrgefühl** (abgenommen; danach Runden auf ~35 s verkürzt, Rundenzeit-Anzeige mit Bestzeit)
   - Vite + TypeScript + Three.js, Simulation 60 Hz mit Interpolation, Input-Objekte
   - Strecke Bauernhof (Hürden, Heuballen, Matsch, 2 Ladestationen, Stall, Silo, Teich, Traktor, Tribüne, Windrad, Hühner)
   - Lenni und Aramis mit Lauf-/Sprung-/Stolper-/Jubelanimation
   - Steuerung PC (Tastatur, Gamepad) und Touch, Auto-Lauf, Verfolgerkamera
   - Kontrollpunkte, 3 Runden, Countdown, Ergebnisliste, Bestzeiten, Pause, Optionen
   - Energie mit Ladestationen, 7 Computergegner (Stufen leicht/mittel/schwer wählbar)
-- [ ] **Phase 2** – alle 10 Tiere, Superkräfte, Icons, Aufholhilfe, 4 Items, Tierwahl mit 3D-Vorschau, KI nutzt Kräfte, Balance-Test aller Tiere
+- [x] **Phase 2 – Tiere, Superkräfte und Items** (abgeschlossen, wartet auf Abnahme)
+  - Alle 10 Tiere mit eigenem Modell (Pferd, Katze, Husky, Hamster), Werten, Icon und Superkraft (`src/game/powers.ts`)
+  - Icon-Punkte mit Aufholhilfe, 4 Items aus Item-Kisten, Effekte (gestoppt, rutschen, verlangsamt, geschützt)
+  - Sichtbare Effekte in `src/render/effects.ts`, HUD mit Superkraft-Anzeige, Item-Einblendung, Superkraft-Taste
+  - Tierwahl mit drehbarer 3D-Vorschau (`src/ui/preview.ts`)
+  - Computergegner nutzen Kräfte und Items (leicht/mittel/schwer), Balance-Test aller Tiere (`npm run sim`)
 - [ ] **Phase 3** – Strecken 2–8, Abkürzungen, Schwimmen, Eis/Sand, bewegte Hindernisse, Cup-Modus, Siegerehrung; Bauernhof grafisch fertig ausbauen
 - [ ] **Phase 4** – Mehrspieler (PeerJS, Raumcode, Lobby, Host-Simulation, Vorhersage)
 - [ ] **Phase 5** – Ton/Musik, Leistungsoptimierung Handy, Veröffentlichung (GitHub Pages)
 
-Noch nicht vorhanden (bewusst): Superkräfte/Icons/Items, Musik/Töne (Lautstärke-Optionen erst mit Ton), Cup, Mehrspieler, Hochformat-Steuerung (Hinweis «Bitte Gerät drehen» ist da).
+Noch nicht vorhanden (bewusst): Abkürzungen (Spürnase-Spur folgt vorerst der Ideallinie), Schwimmen/Eis/Sand, Musik/Töne (auch für Superkräfte; Lautstärke-Optionen erst mit Ton), Cup, Mehrspieler, Hochformat-Steuerung (Hinweis «Bitte Gerät drehen» ist da).
+Bekannt: Aramis gewinnt im Balance-Test etwas häufig (23 %) – Feinabstimmung mit allen Strecken.

@@ -2,7 +2,7 @@
 
 Ein Tier-Rennspiel im Browser: Pferde, Katzen, ein Husky und ein Hamster laufen auf Parcours mit Hindernissen um die Wette. Läuft am PC und am Handy, ohne Installation, ohne Werbung, ohne Anmeldung.
 
-> **Stand:** Phase 1 von 5 – Strecke «Bauernhof», Tiere Lenni und Aramis, 7 Computergegner. Details in `CLAUDE.md`.
+> **Stand:** Phase 2 von 5 – Strecke «Bauernhof», alle 10 Tiere mit Superkräften, Items, 7 Computergegner. Details in `CLAUDE.md`.
 
 ## Steuerung
 
@@ -11,9 +11,10 @@ Ein Tier-Rennspiel im Browser: Pferde, Katzen, ein Husky und ein Hamster laufen 
 | Vorwärts laufen | Pfeil hoch oder W | Taste «Lauf» rechts unten |
 | Lenken | Pfeiltasten oder A / D | Tasten ◀ ▶ links unten |
 | Springen | Leertaste | Taste «Sprung» |
+| Superkraft | E oder Shift | Taste «Superkraft» (leuchtet, wenn bereit) |
 | Pause | Esc | Pause-Symbol oben rechts |
 
-Tipp: Lässt du «Vorwärts» los, läuft dein Tier aus. Pferde sind schnell, müssen aber in engen Kurven kurz bremsen. Katzen sind wendiger. Hol dir die Blitze ⚡, sonst geht dir die Energie aus!
+Tipp: Lässt du «Vorwärts» los, läuft dein Tier aus. Pferde sind schnell, müssen aber in engen Kurven kurz bremsen. Katzen sind wendiger. Hol dir die Blitze ⚡, sonst geht dir die Energie aus! Sammle 3 Icons deines Tiers, dann ist die Superkraft geladen. Die Pfoten-Kisten geben ein Item, das sofort wirkt.
 Mit der Option **Auto-Lauf** läuft dein Tier von selbst, du lenkst nur.
 
 ---

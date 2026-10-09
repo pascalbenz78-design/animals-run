@@ -61,10 +61,10 @@ export class EffectsView {
     const tornadoGeo = new THREE.CylinderGeometry(1.9, 0.5, 3.4, 14, 4, true);
     tornadoGeo.translate(0, 1.7, 0);
     const tornadoMat = new THREE.MeshLambertMaterial({ color: 0xdfe8f0, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false, flatShading: true });
-    const ringGeo = new THREE.RingGeometry(0.85, 1, 40);
+    const ringGeo = new THREE.RingGeometry(0.65, 1, 40);
     ringGeo.rotateX(-Math.PI / 2);
-    const waveGeo = new THREE.RingGeometry(0.92, 1, 24, 1, -POWERS.miauSchrei.halfAngle, POWERS.miauSchrei.halfAngle * 2);
-    waveGeo.rotateX(-Math.PI / 2);
+    // Aufrechte Schallbögen (Ausschnitt eines Zylinders, Mitte zeigt nach +z = vorwärts)
+    const waveGeo = new THREE.CylinderGeometry(1, 1, 1.4, 20, 1, true, -POWERS.miauSchrei.halfAngle, POWERS.miauSchrei.halfAngle * 2);
     const waveMat = new THREE.MeshBasicMaterial({ color: 0xb48cff, transparent: true, opacity: 0.8, side: THREE.DoubleSide, depthWrite: false });
     const auraGeo = new THREE.ConeGeometry(0.7, 3.2, 10, 1, true);
     auraGeo.rotateX(-Math.PI / 2);
@@ -249,9 +249,9 @@ export class EffectsView {
         if (!waving) return;
         const k = Math.min(1, Math.max(0.05, 1 - a.activeTime / POWERS.miauSchrei.waveTime - i * 0.15));
         const r = POWERS.miauSchrei.range * k;
-        w.position.set(p.x, p.y + 0.9, p.z);
-        w.scale.setScalar(Math.max(0.5, r));
-        w.rotation.y = -a.activeDir;
+        w.position.set(p.x, p.y + 0.8, p.z);
+        w.scale.set(Math.max(0.5, r), 1 + k * 0.8, Math.max(0.5, r));
+        w.rotation.y = Math.PI / 2 - a.activeDir;
         (w.material as THREE.MeshBasicMaterial).opacity = 0.75 * (1 - k * 0.6);
       });
     }
@@ -337,6 +337,12 @@ export class EffectsView {
       // Zusätzliche Punkte der Aufholhilfe etwas kleiner
       s.scale.setScalar(ip.rank === 0 ? 1.35 : 1.1);
     });
+  }
+
+  /** Alle Effekte eines Tiers ausblenden (z. B. wenn es direkt vor der Kamera ist). */
+  hideAll(i: number) {
+    const e = this.per[i];
+    for (const o of [e.bubble, e.tornado, e.ball, e.mound, e.mouse, e.aura, e.cloud, e.quakeWarn, ...e.waves]) o.visible = false;
   }
 
   /** Soll das Tiermodell versteckt werden (z. B. beim Buddeln)? */

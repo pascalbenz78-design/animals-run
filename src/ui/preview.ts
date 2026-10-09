@@ -65,12 +65,13 @@ export class AnimalPreview {
     }
     this.model = new AnimalModel(getAnimal(animalId));
     this.turntable.add(this.model.root);
-    // Kamera an die Tiergrösse anpassen
-    const box = new THREE.Box3().setFromObject(this.model.root);
-    const size = box.getSize(new THREE.Vector3());
-    const h = Math.max(size.y, size.z * 0.75, 0.9);
-    this.camera.position.set(0, h * 0.75 + 0.3, h * 2.6 + 1.2);
-    this.camera.lookAt(0, h * 0.42, 0);
+    // Kamera an die Tiergrösse anpassen (nur der Körper, ohne die unsichtbaren Sterne)
+    const box = new THREE.Box3().setFromObject(this.model.spinner);
+    const center = box.getCenter(new THREE.Vector3());
+    const radius = Math.max(0.6, box.getSize(new THREE.Vector3()).length() / 2);
+    const dist = (radius / Math.sin(THREE.MathUtils.degToRad(this.camera.fov / 2))) * 1.2;
+    this.camera.position.set(0, center.y + radius * 0.55, dist);
+    this.camera.lookAt(0, center.y * 0.9, 0);
   }
 
   start() {

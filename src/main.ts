@@ -7,6 +7,7 @@ import { RACE, SIM_DT } from './config/balance';
 import { T } from './config/texts';
 import { ANIMALS, getAnimal } from './animals/animals';
 import { AiDriver } from './game/ai';
+import { startPower } from './game/powers';
 import { RaceSim } from './game/simulation';
 import { Track } from './game/track';
 import type { AiLevel, Entrant, Input } from './game/types';
@@ -130,16 +131,17 @@ function startRace() {
   showScreen('loading');
   showHud(false);
   updateSettings({ lastAnimal: choice.animal, lastTrack: choice.track });
-  // Zwei Frames warten, damit der Ladebildschirm sichtbar wird
-  requestAnimationFrame(() =>
-    requestAnimationFrame(() => {
+  // Kurz warten, damit der Ladebildschirm sichtbar wird
+  setTimeout(
+    () => {
       session = buildSession(choice.track, choice.animal, choice.level, false);
       session.view.resetCamera();
       state = 'race';
       showScreen('none');
       showHud(true);
       input.clear();
-    }),
+    },
+    60,
   );
 }
 
@@ -164,7 +166,14 @@ function frame(now: number) {
   elapsed += dt;
   updateFps(dt);
 
-  if (session && state !== 'paused' && state !== 'loading') {
+  if (session && state !== 'paused' && state !== 'loading') simulate(dt);
+  gr.render(elapsed);
+}
+
+/** Simulation um dt weiterrechnen und den Frame vorbereiten. */
+function simulate(dt: number) {
+  if (!session) return;
+  {
     const s = session;
     accumulator += dt * TIMESCALE;
     let steps = 0;
@@ -191,7 +200,6 @@ function frame(now: number) {
     s.hud?.update(dt);
     if (state === 'race' && s.sim.phase === 'done') finishRace();
   }
-  gr.render(elapsed);
 }
 
 // FPS-Anzeige mit ?fps
@@ -347,6 +355,23 @@ requestAnimationFrame(frame);
   },
   get session() {
     return session;
+  },
+  /** Testhilfe: Spiel ohne Bildschirm-Takt um `seconds` vorspulen und ein Bild zeichnen. */
+  advance: (seconds: number) => {
+    const steps = Math.round(seconds * 30);
+    for (let i = 0; i < steps; i++) {
+      elapsed += 1 / 30;
+      simulate(1 / 30);
+    }
+    gr.render(elapsed);
+    return session ? { time: session.sim.time, phase: session.sim.phase } : null;
+  },
+  /** Testhilfe: Superkraft des eigenen Tiers sofort auslösen. */
+  usePower: () => {
+    if (!session || session.me < 0) return;
+    const a = session.sim.animals[session.me];
+    a.icons = 0;
+    startPower(session.sim, a);
   },
   startRace: (animal = 'lenni', track = 'bauernhof') => {
     choice = { ...choice, animal, track };

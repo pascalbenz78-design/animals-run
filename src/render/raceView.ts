@@ -158,6 +158,19 @@ export class RaceView {
     this.updateDust(dt);
     this.trackView.update(time, sim.time);
     this.updateCamera(alpha, dt, time);
+    // Tiere, die der Kamera zu nahe kommen, ausblenden (sonst ragen sie ins Bild)
+    const cam = this.gr.camera.position;
+    const fp = this.pos[this.focus];
+    const camToFocus = Math.hypot(fp.x - cam.x, fp.z - cam.z);
+    for (const a of sim.animals) {
+      if (a.id === this.focus) continue;
+      const p = this.pos[a.id];
+      if (Math.hypot(p.x - cam.x, p.z - cam.z) < Math.max(2.6, camToFocus * 0.5)) {
+        this.models[a.id].root.visible = false;
+        this.blobs[a.id].visible = false;
+        this.effects.hideAll(a.id);
+      }
+    }
   }
 
   private spawnDust(x: number, y: number, z: number, mud: boolean) {

@@ -121,8 +121,8 @@ export class AiDriver {
     const scan = 8 + a.speed * 1.1;
     for (let k = 0; k <= scan; k += 2) maxK = Math.max(maxK, Math.abs(t.racingCurvature[t.indexAt(a.s + k)]));
     maxK = Math.max(maxK, 1e-4);
-    let vAllowed = Math.min(Math.sqrt(st.grip / maxK), st.turnRate / maxK);
-    if (a.boost > 0) vAllowed *= 1.15; // mit Schub lieber etwas mutiger
+    const grip = a.boost > 0 ? st.grip * a.boostFactor * PHYSICS.boostGrip : st.grip;
+    const vAllowed = Math.min(Math.sqrt(grip / maxK), st.turnRate / maxK);
     inp.vorwaerts = a.speed < vAllowed * 1.05 || a.speed < 5;
     if (Math.abs(diff) > 0.9 && a.speed > 7) inp.vorwaerts = false;
 
@@ -222,8 +222,9 @@ export class AiDriver {
     switch (a.power) {
       case 'turboGalopp': {
         let maxK = 0;
-        for (let k = 0; k < 55; k += 3) maxK = Math.max(maxK, Math.abs(t.racingCurvature[t.indexAt(a.s + k)]));
-        return maxK < 0.022 || held > 8;
+        // Nur auf einer Geraden lohnt sich der Schub (in Kurven bremst die Haftung)
+        for (let k = 0; k < 40; k += 3) maxK = Math.max(maxK, Math.abs(t.racingCurvature[t.indexAt(a.s + k)]));
+        return maxK < 0.03 || held > 15;
       }
       case 'sprungAttacke':
         return findTargetAhead(sim, a, POWERS.sprungAttacke.range - (tactical ? 3 : 0)) >= 0 || held > 15;

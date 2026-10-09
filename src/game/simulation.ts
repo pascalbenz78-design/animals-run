@@ -273,7 +273,9 @@ export class RaceSim {
     // Lenken
     const steer = stunned ? 0 : (inp.rechts ? 1 : 0) - (inp.links ? 1 : 0);
     if (steer !== 0) {
-      let w = Math.min(st.turnRate, st.grip / Math.max(0.1, a.speed));
+      // Während eines Schubs mehr Haftung, damit der Schub auch in Kurven wirkt
+      const grip = a.boost > 0 ? st.grip * a.boostFactor * PHYSICS.boostGrip : st.grip;
+      let w = Math.min(st.turnRate, grip / Math.max(0.1, a.speed));
       if (!a.grounded) w *= PHYSICS.airSteer;
       if (a.stumble > 0 || a.spin > 0) w *= 0.5;
       a.heading = wrapAngle(a.heading + steer * w * dt);
