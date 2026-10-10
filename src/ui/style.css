@@ -1328,6 +1328,14 @@ td.wait {
   font-weight: 700;
   color: var(--orange-dark);
 }
+.ic-desc {
+  max-width: min(46vw, 420px);
+  margin-top: 4px;
+  font-size: clamp(13px, 2.1vw, 18px);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--ink);
+}
 @keyframes introCard {
   from {
     transform: translateX(-60vw) rotate(-12deg);

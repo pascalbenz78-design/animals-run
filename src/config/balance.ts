@@ -267,10 +267,12 @@ export const INTRO = {
   /** Ende des Ansturms (Tiere stürmen vorbei) */
   rushEnd: 3.2,
   rushSpeed: 20,
-  /** Zeit pro Tier bei der Vorstellung */
-  perAnimal: 0.85,
+  /** Zeit pro Tier bei der Vorstellung (genug, um die Superkraft zu lesen) */
+  perAnimal: 3.4,
+  /** Anteil davon, in dem die Kamera zum nächsten Tier gleitet */
+  glide: 0.18,
   /** Logo ab hier (nach Ansturm + 10 Tieren) */
-  logoAt: 3.2 + 10 * 0.85,
+  logoAt: 3.2 + 10 * 3.4,
   /** So lange bleibt das Logo, dann geht es ins Menü */
   logoHold: 3.2,
   /** Abstand der Tiere in der Reihe und Lage des Zielbogens */

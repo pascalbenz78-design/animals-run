@@ -33,6 +33,7 @@ const PENTA = [0, 2, 4, 7, 9];
 
 export const THEMES: Record<string, Theme> = {
   menu: { bpm: 104, root: 60, scale: DUR, chords: [0, 5, 3, 4], lead: 'marimba', bass: 'triangle', drums: 1, swing: 0.1, seed: 1 },
+  intro: { bpm: 116, root: 60, scale: DUR, chords: [0, 4, 5, 3, 0, 3, 4, 4], lead: 'zupf', bass: 'triangle', drums: 1, swing: 0.12, seed: 3 },
   ceremony: { bpm: 96, root: 62, scale: DUR, chords: [0, 3, 4, 0, 5, 3, 4, 4], lead: 'blech', bass: 'triangle', drums: 1, swing: 0, seed: 2 },
   bauernhof: { bpm: 122, root: 62, scale: DUR, chords: [0, 3, 4, 0, 0, 3, 4, 4], lead: 'zupf', bass: 'triangle', drums: 1, swing: 0.18, seed: 11 },
   reitturnier: { bpm: 128, root: 60, scale: DUR, chords: [0, 4, 5, 3, 0, 3, 4, 4], lead: 'blech', bass: 'sawtooth', drums: 2, swing: 0, seed: 12 },

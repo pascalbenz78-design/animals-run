@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { ANIMALS, type AnimalDef } from '../animals/animals';
 import { AnimalModel } from '../animals/models';
 import { audio } from '../audio/engine';
+import { music } from '../audio/music';
 import { voice } from '../audio/sfx';
 import { INTRO } from '../config/balance';
 import { mulberry32 } from '../game/rng';
@@ -28,6 +29,8 @@ interface Runner {
 }
 
 const DUST = 160;
+/** Tierreihe etwas hinter der Wegmitte, damit die Kamera genug Abstand hat */
+const ROW_Z = -1.8;
 
 export class Intro {
   private readonly group = new THREE.Group();
@@ -144,8 +147,12 @@ export class Intro {
       audio.tone(f / 2, d, { at: start + at, dest: 'music', type: 'square', vol: 0.04, attack: 0.02, release: 0.1, filter: 1200 });
     }
     audio.tone(110, 0.3, { at: start + 0.6, dest: 'music', type: 'sine', vol: 0.25, slideTo: 45 });
-    // Becken und Paukenschlag beim Logo
-    const logo = t0 + I.logoAt;
+  }
+
+  /** Becken und Paukenschlag, wenn das Logo erscheint */
+  private playLogoSting() {
+    if (!audio.ctx) return;
+    const logo = audio.now + 0.02;
     audio.noise(1.6, { at: logo, dest: 'music', vol: 0.12, freq: 6000, type: 'highpass' });
     audio.tone(90, 0.6, { at: logo, dest: 'music', type: 'sine', vol: 0.3, slideTo: 40 });
     ;[60, 64, 67, 72].forEach((n, i) => {
@@ -200,13 +207,17 @@ export class Intro {
       const k = (t - I.rushEnd) / I.perAnimal;
       const idx = Math.min(this.runners.length - 1, Math.floor(k));
       if (idx !== this.featured) {
+        if (this.featured < 0) music.play('intro');
         this.featured = idx;
         const r = this.runners[idx];
         r.hop = 0.001;
         this.cue({ type: 'feature', animal: r.def });
         if (audio.ctx) voice(r.def.species, 0.9, 0, 'jubel');
       }
-      const camX = this.slotX(0) + (k - 0.5) * I.spacing;
+      // Kamera bleibt beim Tier stehen und gleitet am Ende zum nächsten
+      const frac = k - idx;
+      const g = idx < this.runners.length - 1 ? Math.max(0, (frac - (1 - I.glide)) / I.glide) : 0;
+      const camX = this.slotX(idx) + g * g * (3 - 2 * g) * I.spacing;
       for (const r of this.runners) {
         const x = this.slotX(r.slot);
         let alt = 0;
@@ -218,19 +229,20 @@ export class Intro {
           alt = Math.max(0, h);
           if (h < 0) r.hop = 0;
         }
-        r.model.root.position.set(x, alt, 0);
+        r.model.root.position.set(x, alt, ROW_Z);
         // Zur Kamera drehen, das vorgestellte Tier etwas mehr
         r.model.root.rotation.y = r.slot === idx ? 0.15 : 0.5;
         r.model.animate(this.pose(0, 0, alt, vy, alt <= 0, r.slot === idx), dt);
       }
-      const focus = this.slotX(idx);
-      const tx = Math.max(this.slotX(0), Math.min(this.slotX(9), camX));
-      cam.position.set(tx + 0.5, 1.4, 4.4 * far);
-      cam.lookAt(focus + (camX - focus) * 0.3, 1.0, 0);
+      // Das vorgestellte Tier steht etwas rechts der Bildmitte (links ist die Karte)
+      cam.position.set(camX - 1.8, 1.4, 4.4 * far);
+      cam.lookAt(camX - 1.8, 0.95, ROW_Z);
     } else {
       // 3) Finale: Kamera zieht hoch und zurück, alle jubeln, Logo erscheint
       if (!this.logoShown) {
         this.logoShown = true;
+        music.stop();
+        this.playLogoSting();
         this.cue({ type: 'logo' });
       }
       const k = Math.min(1, (t - I.logoAt) / 1.6);
@@ -239,12 +251,12 @@ export class Intro {
       for (const r of this.runners) {
         const ph = (t * 3 + r.slot * 0.7) % 1;
         const alt = Math.max(0, Math.sin(ph * Math.PI) * 0.7);
-        r.model.root.position.set(this.slotX(r.slot), alt, 0);
+        r.model.root.position.set(this.slotX(r.slot), alt, ROW_Z);
         r.model.root.rotation.y = 0.3 * (1 - e);
         r.model.animate(this.pose(0, 0, alt, 0, alt <= 0.02, true), dt);
       }
       cam.position.set(mid + 4 * (1 - e), 1.4 + e * 5, 4.4 * far + e * 17);
-      cam.lookAt(mid, 1 + e * 0.8, 0);
+      cam.lookAt(mid, 1 + e * 0.8, ROW_Z);
       if (t >= I.logoAt + I.logoHold) this.skip();
     }
     cam.updateProjectionMatrix();

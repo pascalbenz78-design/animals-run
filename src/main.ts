@@ -120,6 +120,7 @@ function introCue(c: IntroCue) {
     $('intro-name').textContent = a.name;
     $('intro-species').textContent = T.species[a.species];
     $('intro-power').textContent = `${a.icon} ${T.intro.power}: ${T.powers[a.power][0]}`;
+    $('intro-desc').textContent = T.powers[a.power][1];
     // Einflug-Animation neu starten
     card.classList.remove('hidden');
     card.classList.add('again');
