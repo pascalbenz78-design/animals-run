@@ -333,7 +333,11 @@ export class RaceSim {
     } else a.moveHeading = a.heading;
 
     // Springen (nur beim Drücken, nicht beim Halten). Nicht beim Buddeln oder Schwimmen.
-    if (inp.springen && !a.jumpHeld && a.grounded && a.stumble <= 0 && !stunned && !digging && !a.swimming) {
+    // Sprunghilfe: kurz vor der Landung gedrückt, wird der Sprung bei der Landung ausgeführt.
+    if (inp.springen && !a.jumpHeld) a.jumpBuffer = OBSTACLES.jumpBuffer;
+    else if (a.jumpBuffer > 0) a.jumpBuffer = Math.max(0, a.jumpBuffer - dt);
+    if (a.jumpBuffer > 0 && a.grounded && a.stumble <= 0 && !stunned && !digging && !a.swimming) {
+      a.jumpBuffer = 0;
       a.vy = st.jumpVelocity;
       a.grounded = false;
       this.events.push({ type: 'jump', animal: a.id });
@@ -423,7 +427,7 @@ export class RaceSim {
       const hu = el.hurdles[h];
       const before = t.delta(hu.s, prevS);
       const after = t.delta(hu.s, a.s);
-      if (!(before < 0 && after >= 0 && after - before < 5) || a.alt >= hu.height || prot) continue;
+      if (!(before < 0 && after >= 0 && after - before < 5) || a.alt >= hu.height - OBSTACLES.hurdleTolerance || prot) continue;
       if (hu.gap && st.radius <= ELEMENTS.gapRadius && a.d >= hu.gap[0] && a.d <= hu.gap[1]) continue;
       a.speed *= OBSTACLES.hurdleSpeedKeep;
       a.stumble = OBSTACLES.hurdleStumble;
@@ -965,6 +969,7 @@ function newAnimal(
     stumble: 0,
     respawn: 0,
     jumpHeld: false,
+    jumpBuffer: 0,
     powerHeld: false,
     inMud: false,
     surface: '',

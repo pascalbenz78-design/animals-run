@@ -54,7 +54,7 @@ export const STAT_SCALE = {
   /** Beschleunigung in m/s². */
   accel: [0, 3.5, 4.5, 5.8, 7.4, 9.5],
   /** Sprung-Startgeschwindigkeit in m/s (Sprunghöhe = v² / 2g). */
-  jumpVelocity: [0, 6.6, 7.1, 7.6, 8.1, 8.6],
+  jumpVelocity: [0, 7.4, 7.9, 8.0, 8.2, 8.6],
   /** Tempo-Faktor beim Schwimmen. */
   swimFactor: [0, 0.45, 0.55, 0.65, 0.75, 0.85],
   /** Drehrate in rad/s bei langsamem Tempo. */
@@ -89,6 +89,10 @@ export const ENERGY = {
 
 export const OBSTACLES = {
   hurdleHeight: 0.85,
+  /** Sprunghilfe: so knapp darf man eine Stange streifen, ohne zu stolpern (Meter) */
+  hurdleTolerance: 0.1,
+  /** Sprunghilfe: so lange (s) vor der Landung gedrückt, wird der Sprung bei der Landung ausgeführt */
+  jumpBuffer: 0.15,
   /** Tempo nach dem Anstossen an eine Hürde (Anteil). */
   hurdleSpeedKeep: 0.35,
   hurdleStumble: 0.6,

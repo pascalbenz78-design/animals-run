@@ -104,6 +104,8 @@ export interface AnimalState {
   stumble: number;
   respawn: number;
   jumpHeld: boolean;
+  /** Gespeicherter Sprungwunsch (Sekunden) */
+  jumpBuffer: number;
   powerHeld: boolean;
   inMud: boolean;
   /** Aktueller Untergrund ('' = normal) */
