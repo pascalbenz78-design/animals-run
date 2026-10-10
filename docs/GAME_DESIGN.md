@@ -84,7 +84,7 @@ Einfach halten, nur vier Funktionen:
 
 ### Allgemeine Items (genau 4)
 
-Item-Kisten (Pfoten-Symbol) in Reihen auf der Strecke, 2–3 Reihen pro Runde. Wer zurückliegt, erhält eher hilfreiche Items, wer vorne liegt, eher die Falle.
+Item-Kisten in Reihen auf der Strecke, 2–3 Reihen pro Runde. Jede Kiste zeigt ihr Item (siehe Entscheid 57); versteckte Kisten im Laub sind Überraschungen: Wer zurückliegt, erhält eher hilfreiche Items, wer vorne liegt, eher die Falle.
 
 | Item | Wirkung |
 |---|---|
@@ -376,3 +376,5 @@ Hier stehen Entscheide, die während der Entwicklung getroffen wurden (mit Begr�
 
 54. **Lianen (Dschungel):** Vor den drei Matschfeldern hängen Lianen an einem Ast quer über der Bahn. Wer hineinspringt (ab 0,4 m Höhe), schwingt mit Schub (×1,25 für 1,2 s) hoch über den Matsch. Für alle Tiere gleich; die Computergegner nutzen sie ab Stufe «Mittel».
 55. **Wellen (Sandstrand):** An zwei Stellen rollen in Abständen (6,5 s bzw. 7 s) Wellen vom Meer (rechts) quer über die Bahn. Man sieht und hört sie heranrollen. Wer am Boden getroffen wird, wird 2,4 m zur Seite gespült und gebremst (72 % Tempo), aber nicht gestoppt. Drüberspringen schützt.
+56. **Intro:** Nach dem ersten Tippen auf das Titelbild läuft ein Intro (ca. 15 s): Trommelwirbel, und das ganze Rudel stürmt an der Kamera vorbei (Fanfare). Danach fährt die Kamera die Reihe ab und stellt jedes Tier mit Name, Tierart und Superkraft vor (jedes Tier ruft), zum Schluss springt das Logo mit Beckenschlag herein. Man kann es jederzeit überspringen (Taste, Tippen oder «Überspringen»); in den Optionen lässt es sich ausschalten («Intro beim Start»). Das Intro startet erst nach dem ersten Tippen, weil der Browser vorher keinen Ton erlaubt.
+57. **Item-Kisten zeigen ihr Item** (⚡ 🐌 🛡️ 💩, in passender Farbe), damit man das gewünschte gezielt anlaufen kann. Jede Reihe zeigt zu Beginn alle vier Items; eine eingesammelte Kiste erscheint nach 3 s mit einem Item wieder, das in der Reihe gerade fehlt. Die im Laub versteckten Kisten bleiben eine Überraschung und werden wie bisher je nach Platz ausgelost (hinten eher hilfreich). Computergegner laufen je nach Platz das passende Item an. Mehrspieler-Protokoll Version 3 (die Kisten-Items werden mitgeschickt).

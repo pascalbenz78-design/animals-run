@@ -7,7 +7,7 @@ import { CUPS, TRACKS } from '../tracks';
 import { load } from '../storage';
 import { formatTime } from './hud';
 
-export type ScreenName = 'title' | 'main' | 'animal' | 'track' | 'options' | 'controls' | 'loading' | 'pause' | 'results' | 'ceremony' | 'help' | 'mp' | 'lobby' | 'none';
+export type ScreenName = 'title' | 'intro' | 'main' | 'animal' | 'track' | 'options' | 'controls' | 'loading' | 'pause' | 'results' | 'ceremony' | 'help' | 'mp' | 'lobby' | 'none';
 
 const $ = <E extends HTMLElement>(id: string) => document.getElementById(id) as E;
 
@@ -21,7 +21,7 @@ export function applyTexts() {
   });
 }
 
-const SCREENS: ScreenName[] = ['title', 'main', 'animal', 'track', 'options', 'controls', 'loading', 'pause', 'results', 'ceremony', 'help', 'mp', 'lobby'];
+const SCREENS: ScreenName[] = ['title', 'intro', 'main', 'animal', 'track', 'options', 'controls', 'loading', 'pause', 'results', 'ceremony', 'help', 'mp', 'lobby'];
 
 export function showScreen(name: ScreenName) {
   for (const s of SCREENS) $(`scr-${s}`).classList.toggle('hidden', s !== name);

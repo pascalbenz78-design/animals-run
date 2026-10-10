@@ -19,6 +19,18 @@
         <p class="blink" data-t="tapToStart"></p>
       </section>
 
+      <!-- Intro -->
+      <section id="scr-intro" class="screen hidden intro">
+        <div id="intro-card" class="intro-card hidden">
+          <div class="ic-name" id="intro-name"></div>
+          <div class="ic-species" id="intro-species"></div>
+          <div class="ic-power" id="intro-power"></div>
+        </div>
+        <div id="intro-logo" class="logo hidden"><span class="logo-a">Animals</span><span class="logo-b">Run</span></div>
+        <p id="intro-go" class="intro-go hidden" data-t="intro.go"></p>
+        <button class="btn intro-skip" id="btn-intro-skip" data-t="intro.skip"></button>
+      </section>
+
       <!-- Hauptmenü -->
       <section id="scr-main" class="screen hidden">
         <div class="logo small"><span class="logo-a">Animals</span><span class="logo-b">Run</span></div>
@@ -73,6 +85,7 @@
           <div class="opt"><span data-t="options.musicVol"></span><input type="range" id="opt-music" min="0" max="100" /></div>
           <div class="opt"><span data-t="options.sfxVol"></span><input type="range" id="opt-sfx" min="0" max="100" /></div>
           <div class="opt"><span data-t="options.mute"></span><div id="opt-mute" class="seg"></div></div>
+          <div class="opt"><span data-t="options.intro"></span><div id="opt-intro" class="seg"></div></div>
         </div>
         <button class="btn" id="btn-options-back" data-t="menu.back"></button>
       </section>

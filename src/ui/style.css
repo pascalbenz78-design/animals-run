@@ -1281,3 +1281,92 @@ td.wait {
     opacity: 0;
   }
 }
+
+/* Intro */
+.screen.intro {
+  justify-content: flex-end;
+  align-items: flex-start;
+  cursor: pointer;
+}
+.intro-skip {
+  position: absolute;
+  top: calc(12px + var(--safe-t, 0px));
+  right: calc(12px + var(--safe-r));
+  font-size: 15px;
+  padding: 8px 14px;
+  opacity: 0.85;
+}
+.intro-card {
+  margin: 0 0 6vh 3vw;
+  padding: 12px 22px 14px;
+  background: rgba(255, 250, 235, 0.95);
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.25);
+  transform: rotate(-2deg);
+  animation: introCard 0.35s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+.intro-card.again {
+  animation: none;
+}
+.ic-name {
+  font-size: clamp(34px, 7vw, 64px);
+  font-weight: 900;
+  color: #ffd23f;
+  -webkit-text-stroke: 2px var(--ink);
+  paint-order: stroke fill;
+  line-height: 1;
+}
+.ic-species {
+  font-size: clamp(15px, 2.6vw, 22px);
+  font-weight: 800;
+  color: var(--ink);
+  margin-top: 2px;
+}
+.ic-power {
+  font-size: clamp(14px, 2.4vw, 20px);
+  font-weight: 700;
+  color: var(--orange-dark);
+}
+@keyframes introCard {
+  from {
+    transform: translateX(-60vw) rotate(-12deg);
+  }
+  to {
+    transform: rotate(-2deg);
+  }
+}
+#intro-logo {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 14%;
+  animation: introLogo 0.7s cubic-bezier(0.2, 1.8, 0.4, 1);
+}
+#intro-logo span {
+  font-size: clamp(64px, 16vw, 170px);
+}
+@keyframes introLogo {
+  0% {
+    transform: scale(4) rotate(-20deg);
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(-4deg);
+  }
+}
+.intro-go {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 10%;
+  text-align: center;
+  color: #fff;
+  font-size: clamp(20px, 4vw, 34px);
+  font-weight: 900;
+  text-shadow: 0 3px 0 var(--ink), 0 6px 12px rgba(0, 0, 0, 0.4);
+  animation: blink 1.2s ease-in-out infinite;
+}

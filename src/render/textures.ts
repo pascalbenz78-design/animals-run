@@ -139,6 +139,24 @@ export function emojiTexture(emoji: string, ring = false): THREE.CanvasTexture {
   return t;
 }
 
+/** Item-Kiste mit sichtbarem Item: farbige Seiten mit grossem Symbol. */
+export function itemBoxTexture(emoji: string, color: string): THREE.CanvasTexture {
+  const [c, g] = canvas(128, 128);
+  const grad = g.createLinearGradient(0, 0, 128, 128);
+  grad.addColorStop(0, '#ffffff');
+  grad.addColorStop(1, color);
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 128, 128);
+  g.lineWidth = 10;
+  g.strokeStyle = '#fff6d8';
+  g.strokeRect(5, 5, 118, 118);
+  g.font = '84px "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillText(emoji, 64, 70);
+  return finish(c, false);
+}
+
 /** Item-Kiste: bunte Seiten mit Pfoten-Symbol. */
 export function pawBoxTexture(): THREE.CanvasTexture {
   const [c, g] = canvas(128, 128);

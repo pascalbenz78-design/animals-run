@@ -2,6 +2,7 @@
 export const T = {
   title: 'Animals Run',
   tapToStart: 'Tippen oder Taste drücken zum Starten',
+  intro: { skip: 'Überspringen ⏭', power: 'Superkraft', go: 'Auf die Plätze …' },
   menu: {
     single: 'Einzelrennen',
     cup: 'Cup',
@@ -34,6 +35,7 @@ export const T = {
     musicVol: 'Lautstärke Musik',
     sfxVol: 'Lautstärke Effekte',
     mute: 'Stumm',
+    intro: 'Intro beim Start',
     on: 'Ein',
     off: 'Aus',
   },
@@ -149,7 +151,7 @@ export const T = {
       ['Laufen und Bremsen', 'Mit Auto-Lauf läuft dein Tier von selbst, du lenkst nur. Vor engen Kurven kurz bremsen (S / Pfeil runter, am Handy «Bremse») – besonders Pferde fliegen sonst aus der Kurve.'],
       ['Energie ⚡', 'Laufen kostet Energie, Schwimmen und Bergauf noch mehr. Unter 30 wird dein Tier langsamer. Jede Strecke hat 2 Ladestationen pro Runde – nimm möglichst jede mit!'],
       ['Superkraft', 'Sammle 3 Icons deines Tiers (nur du siehst deine eigenen). Dann leuchtet die Superkraft-Anzeige – mit E / Shift oder der Taste «Superkraft» auslösen. Wer weiter hinten liegt, findet mehr Icons.'],
-      ['Items 🐾', 'Pfoten-Kisten wirken sofort: ⚡ Turbo-Pfote (kurz schneller), 🐌 Schneckenwolke (alle vor dir langsamer), 🛡️ Schutzschild (unverwundbar), 💩 Matschfalle (fällt hinter dir hin). Hinten gibt es eher hilfreiche Items, vorne eher die Falle.'],
+      ['Items 🐾', 'Pfoten-Kisten wirken sofort: ⚡ Turbo-Pfote (kurz schneller), 🐌 Schneckenwolke (alle vor dir langsamer), 🛡️ Schutzschild (unverwundbar), 💩 Matschfalle (fällt hinter dir hin). Jede Kiste zeigt ihr Item – lauf das gewünschte an! Im Laub versteckte Kisten sind eine Überraschung (hinten eher hilfreich, vorne eher die Falle).'],
       ['Schützen', 'Schutzschild, Athenas Schutzpflaster und Tiras Buddeln schützen vor allen Superkräften, Items und Hindernissen. Gegen Simbas Erdbeben hilft auch ein Sprung im richtigen Moment.'],
       ['Springen', 'Springen über Hürden, Spalten, Gräben, Stämme und Windradflügel. Reifen durchspringen gibt Schub. Schanzen, Dünen und Geysire schleudern dich hoch. In Lianen hineinspringen: Du schwingst mit Schub weiter. Wellen am Strand überspringen, sonst wirst du zur Seite gespült. Springen geht immer – auch während einer Superkraft (nur nicht beim Schwimmen oder Buddeln). Sprunghilfe: Drückst du kurz vor der Landung, springt dein Tier sofort wieder; ganz knapp gestreifte Stangen zählen nicht.'],
       ['Ton', 'Musik und Geräusche starten nach der ersten Berührung. Lautstärke von Musik und Effekten oder Stumm stellst du unter «Optionen» ein.'],

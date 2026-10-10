@@ -40,7 +40,7 @@ src/config     balance.ts (Zahlen), texts.ts (Texte)
 src/game       Simulation: track.ts, simulation.ts, elements.ts (Streckenelemente), powers.ts, ai.ts, types.ts, rng.ts
 src/animals    animals.ts (Daten), models.ts (3D-Modelle + Animation)
 src/tracks     Streckendaten (bauernhof.ts …), types.ts
-src/render     renderer.ts, trackView.ts, trackElements.ts, decor.ts, landmarks.ts, weather.ts, effects.ts,
+src/render     renderer.ts, trackView.ts, trackElements.ts, decor.ts, landmarks.ts, weather.ts, effects.ts, intro.ts,
                raceView.ts, ceremony.ts, geo.ts, textures.ts
 src/input      input.ts (Tastatur, Touch, Gamepad)
 src/ui         hud.ts, menus.ts, style.css

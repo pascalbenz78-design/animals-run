@@ -177,8 +177,12 @@ export interface ItemBox {
   s: number;
   d: number;
   timer: number;
-  /** Im Laubhaufen versteckt */
+  /** Im Laubhaufen versteckt (Überraschung: Item wird erst beim Einsammeln ausgelost) */
   hidden: boolean;
+  /** Item, das die Kiste zeigt */
+  item: ItemId;
+  /** Reihe (Kisten einer Reihe zeigen möglichst verschiedene Items) */
+  row: number;
 }
 
 /** Apfel (Ray) oder Matschfalle (Item) auf der Strecke */

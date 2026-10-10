@@ -16,6 +16,8 @@ export interface Settings {
   musicVolume: number;
   sfxVolume: number;
   muted: boolean;
+  /** Intro beim Start zeigen */
+  intro: boolean;
 }
 
 export interface SaveData {
@@ -34,7 +36,7 @@ function defaultQuality(): Quality {
 
 function defaults(): SaveData {
   return {
-    settings: { quality: defaultQuality(), autoRun: true, controlHints: true, lastAnimal: 'lenni', lastTrack: 'bauernhof', playerName: '', musicVolume: 0.6, sfxVolume: 0.8, muted: false },
+    settings: { quality: defaultQuality(), autoRun: true, controlHints: true, lastAnimal: 'lenni', lastTrack: 'bauernhof', playerName: '', musicVolume: 0.6, sfxVolume: 0.8, muted: false, intro: true },
     bestTimes: {},
     bestLaps: {},
     cupBest: {},

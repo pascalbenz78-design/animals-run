@@ -7,9 +7,10 @@ import * as THREE from 'three';
 import { ICONS, POWERS } from '../config/balance';
 import { getAnimal } from '../animals/animals';
 import type { RaceSim } from '../game/simulation';
-import type { SimEvent } from '../game/types';
+import { ITEM_IDS, type SimEvent } from '../game/types';
+import { T } from '../config/texts';
 import { G, mesh, part } from './geo';
-import { emojiTexture, pawBoxTexture } from './textures';
+import { emojiTexture, itemBoxTexture } from './textures';
 
 export interface AnimalPos {
   x: number;
@@ -45,7 +46,8 @@ export class EffectsView {
   private readonly per: PerAnimal[] = [];
   private readonly apples: THREE.InstancedMesh;
   private readonly traps: THREE.InstancedMesh;
-  private readonly boxes: THREE.InstancedMesh;
+  /** Item-Kisten, je Item eine Sorte (mit sichtbarem Symbol) */
+  private readonly boxes: THREE.InstancedMesh[];
   private readonly bones: THREE.InstancedMesh;
   /** Laubhaufen über versteckten Item-Kisten */
   private readonly leaves: THREE.InstancedMesh;
@@ -131,12 +133,17 @@ export class EffectsView {
     this.apples.count = this.traps.count = 0;
 
     // Item-Kisten
-    this.boxes = new THREE.InstancedMesh(
-      new THREE.BoxGeometry(1.1, 1.1, 1.1),
-      new THREE.MeshLambertMaterial({ map: pawBoxTexture(), transparent: true, opacity: 0.92 }),
-      Math.max(1, sim.itemBoxes.length),
-    );
-    this.boxes.castShadow = true;
+    const boxGeo = new THREE.BoxGeometry(1.1, 1.1, 1.1);
+    const boxColors: Record<string, string> = { turbo: '#ffc21a', schnecke: '#7fd04f', schild: '#4fa8ff', matsch: '#b07a4a' };
+    this.boxes = ITEM_IDS.map((id) => {
+      const m = new THREE.InstancedMesh(
+        boxGeo,
+        new THREE.MeshLambertMaterial({ map: itemBoxTexture(T.items[id][0], boxColors[id]), transparent: true, opacity: 0.95 }),
+        Math.max(1, sim.itemBoxes.length),
+      );
+      m.castShadow = true;
+      return m;
+    });
     const leafGeo = mesh([
       part(G.dodeca(0.9), 0xd8702a, { scale: [1.3, 0.55, 1.3] }),
       part(G.dodeca(0.6), 0xe8a032, { pos: [0.4, 0.25, 0.2], scale: [1.2, 0.6, 1.2] }),
@@ -166,7 +173,7 @@ export class EffectsView {
       this.group.add(s);
       this.iconSprites.push(s);
     }
-    this.group.add(this.apples, this.traps, this.boxes, this.bones);
+    this.group.add(this.apples, this.traps, ...this.boxes, this.bones);
   }
 
   handleEvent(e: SimEvent, pos: AnimalPos[], focus: number) {
@@ -301,6 +308,7 @@ export class EffectsView {
 
     // Item-Kisten drehen sich; eingesammelte erscheinen wachsend wieder
     const tmp = { x: 0, y: 0, z: 0 };
+    const counts = [0, 0, 0, 0];
     sim.itemBoxes.forEach((b, i) => {
       t.pointAt(b.s, b.d, tmp);
       // Versteckt: Laubhaufen statt Kiste (eingesammelt = flach gedrückt)
@@ -310,14 +318,20 @@ export class EffectsView {
       else this.dummy.scale.setScalar(0);
       this.dummy.updateMatrix();
       this.leaves.setMatrixAt(i, this.dummy.matrix);
-      const sc = b.hidden ? 0 : b.timer <= 0 ? 1 : Math.max(0, 1 - b.timer / 0.4);
+      if (b.hidden || b.timer > 0.4) return;
+      const sc = b.timer <= 0 ? 1 : Math.max(0, 1 - b.timer / 0.4);
       this.dummy.position.set(tmp.x, tmp.y + 1.1 + Math.sin(time * 2.5 + i) * 0.15, tmp.z);
-      this.dummy.rotation.set(0.5, time * 1.6 + i, 0.3);
+      // Langsam drehen und kaum kippen, damit das Symbol gut zu erkennen ist
+      this.dummy.rotation.set(0.15, time * 1.1 + i, 0.08);
       this.dummy.scale.setScalar(sc);
       this.dummy.updateMatrix();
-      this.boxes.setMatrixAt(i, this.dummy.matrix);
+      const k = ITEM_IDS.indexOf(b.item);
+      this.boxes[k].setMatrixAt(counts[k]++, this.dummy.matrix);
     });
-    this.boxes.instanceMatrix.needsUpdate = true;
+    this.boxes.forEach((m, k) => {
+      m.count = counts[k];
+      m.instanceMatrix.needsUpdate = true;
+    });
     this.leaves.instanceMatrix.needsUpdate = true;
 
     // Knochenspur vor Tira (Spürnase): zur nächsten Abkürzung, sonst entlang der Ideallinie

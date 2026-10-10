@@ -261,3 +261,19 @@ export const ELEMENTS = {
   wave: { warn: 1.6, sweep: 2.2, band: 1.2, push: 2.4, speedKeep: 0.72, immunity: 1.2, jumpAlt: 0.45 },
   shortcut: { width: 5 },
 };
+
+/** Intro beim Spielstart (Zeiten in Sekunden) */
+export const INTRO = {
+  /** Ende des Ansturms (Tiere stürmen vorbei) */
+  rushEnd: 3.2,
+  rushSpeed: 20,
+  /** Zeit pro Tier bei der Vorstellung */
+  perAnimal: 0.85,
+  /** Logo ab hier (nach Ansturm + 10 Tieren) */
+  logoAt: 3.2 + 10 * 0.85,
+  /** So lange bleibt das Logo, dann geht es ins Menü */
+  logoHold: 3.2,
+  /** Abstand der Tiere in der Reihe und Lage des Zielbogens */
+  spacing: 2.8,
+  archX: 20,
+};

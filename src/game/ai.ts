@@ -3,12 +3,12 @@
  * Sie folgen der Ideallinie (mit Abweichung je nach Stufe), weichen Heuballen, Matsch und Fallen aus,
  * holen sich Blitze, Icons und Item-Kisten, springen über Hürden und setzen ihre Superkraft ein.
  */
-import { AI, ELEMENTS, ICONS, PHYSICS, POWERS, SIM_DT } from '../config/balance';
+import { AI, ELEMENTS, ICONS, ITEMS, PHYSICS, POWERS, SIM_DT } from '../config/balance';
 import { findTargetAhead } from './powers';
 import type { RaceSim } from './simulation';
 import { mulberry32 } from './rng';
 import { wrapAngle } from './track';
-import { emptyInput, type AnimalState, type Input } from './types';
+import { emptyInput, ITEM_IDS, type AnimalState, type Input } from './types';
 
 export class AiDriver {
   private readonly rng: () => number;
@@ -355,9 +355,13 @@ export class AiDriver {
       }
     }
     // Item-Kisten
+    // Sichtbares Item: je nach Platz das passende anlaufen (hinten Turbo/Schnecke, vorne Falle/Schild)
+    const pref = ITEMS.odds[Math.max(1, Math.min(8, a.place))];
     for (const b of sim.itemBoxes) {
       if (b.timer > 0) continue;
-      consider(b.s, b.d, 1.5, 35);
+      const want = b.hidden ? 0.3 : pref[ITEM_IDS.indexOf(b.item)];
+      if (want <= 0.02) continue;
+      consider(b.s, b.d, 0.5 + want * 3, 35);
     }
     return best;
   }

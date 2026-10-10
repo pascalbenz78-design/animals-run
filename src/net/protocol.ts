@@ -68,7 +68,7 @@ export type Msg =
   /** Mitspieler hat die Strecken-Info gelesen und ist bereit */
   | { t: 'loaded' };
 
-export const PROTOCOL_VERSION = 2;
+export const PROTOCOL_VERSION = 3;
 
 /** Eingabe als Bitfeld (klein für die Übertragung) */
 export function packInput(i: Input): number {

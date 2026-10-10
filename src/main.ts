@@ -24,6 +24,7 @@ import { RaceView } from './render/raceView';
 import { GameRenderer } from './render/renderer';
 import { TrackView, type Quality } from './render/trackView';
 import { Ceremony } from './render/ceremony';
+import { Intro, type IntroCue } from './render/intro';
 import { CUPS, getTrack, TRACKS } from './tracks';
 import { settings, submitCup, submitTime, updateSettings } from './storage';
 import { Hud } from './ui/hud';
@@ -93,6 +94,53 @@ let choice = {
 };
 let cup: CupState | null = null;
 let ceremony: Ceremony | null = null;
+let intro: Intro | null = null;
+
+/** Titelbild angetippt: Intro zeigen (falls eingeschaltet) oder direkt ins Menü */
+function leaveTitle() {
+  if (intro) return;
+  if (!settings().intro) {
+    go('main');
+    return;
+  }
+  disposeSession();
+  music.stop();
+  intro = new Intro(gr, introCue);
+  $('intro-card').classList.add('hidden');
+  $('intro-logo').classList.add('hidden');
+  $('intro-go').classList.add('hidden');
+  showScreen('intro');
+  screenNow = 'intro';
+}
+
+function introCue(c: IntroCue) {
+  if (c.type === 'feature') {
+    const card = $('intro-card');
+    const a = c.animal;
+    $('intro-name').textContent = a.name;
+    $('intro-species').textContent = T.species[a.species];
+    $('intro-power').textContent = `${a.icon} ${T.intro.power}: ${T.powers[a.power][0]}`;
+    // Einflug-Animation neu starten
+    card.classList.remove('hidden');
+    card.classList.add('again');
+    void card.offsetWidth;
+    card.classList.remove('again');
+  } else if (c.type === 'logo') {
+    $('intro-card').classList.add('hidden');
+    $('intro-logo').classList.remove('hidden');
+    $('intro-go').classList.remove('hidden');
+  } else {
+    endIntro();
+  }
+}
+
+function endIntro() {
+  if (!intro) return;
+  intro.dispose();
+  intro = null;
+  startDemo();
+  go('main');
+}
 let optionsReturn: ScreenName = 'main';
 let mp: Multiplayer | null = null;
 /** Mitspieler: Cup-Wertung vom Gastgeber, falls sie vor dem eigenen Rennende ankommt */
@@ -406,7 +454,8 @@ function frame(now: number) {
   elapsed += dt;
   updateFps(dt);
 
-  if (ceremony) ceremony.update(dt);
+  if (intro) intro.update(dt);
+  else if (ceremony) ceremony.update(dt);
   else if (session && state !== 'paused' && state !== 'loading') simulate(dt);
   else if (session && state === 'loading' && pendingRole) session.view.update(1, dt, elapsed);
   gr.render(elapsed);
@@ -559,6 +608,7 @@ function buildOptions() {
     applyAudio();
   };
   fx.onchange = () => sfxClick();
+  segmented($('opt-intro'), [['1', T.options.on], ['0', T.options.off]], s.intro ? '1' : '0', (v) => updateSettings({ intro: v === '1' }));
   segmented($('opt-mute'), [['1', T.options.on], ['0', T.options.off]], s.muted ? '1' : '0', (v) => {
     updateSettings({ muted: v === '1' });
     applyAudio();
@@ -756,10 +806,12 @@ function setupUi() {
   buildControlsTable();
   applyBodyFlags();
   document.querySelectorAll<HTMLElement>('[data-go]').forEach((b) => b.addEventListener('click', () => go(b.dataset.go as ScreenName)));
-  $('scr-title').addEventListener('click', () => go('main'));
+  $('scr-title').addEventListener('click', leaveTitle);
   window.addEventListener('keydown', (e) => {
-    if (!$('scr-title').classList.contains('hidden') && e.code !== 'Escape') go('main');
+    if (!$('scr-title').classList.contains('hidden') && e.code !== 'Escape') leaveTitle();
+    else if (intro && !e.repeat) intro.skip();
   });
+  $('scr-intro').addEventListener('click', () => intro?.skip());
   $('btn-start').addEventListener('click', () => (choice.mode === 'cup' ? startCup() : startRace()));
   $('btn-single').addEventListener('click', () => {
     choice.mode = 'einzel';
@@ -857,6 +909,9 @@ requestAnimationFrame(frame);
   },
   get session() {
     return session;
+  },
+  get intro() {
+    return intro;
   },
   get mp() {
     return mp;

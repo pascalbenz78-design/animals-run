@@ -4,7 +4,7 @@
  * (Client-Vorhersage mit Korrektur).
  */
 import type { RaceSim } from '../game/simulation';
-import type { AnimalState, Hazard, RacePhase } from '../game/types';
+import { ITEM_IDS, type AnimalState, type Hazard, type RacePhase } from '../game/types';
 
 /** Felder, die nur für die Darstellung zwischen zwei Schritten gebraucht werden */
 type LocalOnly = 'prevX' | 'prevZ' | 'prevAlt' | 'prevHeading';
@@ -20,6 +20,8 @@ export interface Snapshot {
   animals: AnimalSnap[];
   bolts: number[];
   boxes: number[];
+  /** Item je Kiste (Index in ITEM_IDS) */
+  boxItems: number[];
   hazards: Hazard[];
   hurdleHit: number[];
   /** Zuletzt verwendete Eingabe (Bitfeld) je Tier – für die Vorhersage der anderen Menschen */
@@ -40,6 +42,7 @@ export function captureSnapshot(sim: RaceSim, inputs: number[]): Snapshot {
     }),
     bolts: sim.bolts.map((b) => b.timer),
     boxes: sim.itemBoxes.map((b) => b.timer),
+    boxItems: sim.itemBoxes.map((b) => ITEM_IDS.indexOf(b.item)),
     hazards: sim.hazards.map((h) => ({ ...h })),
     hurdleHit: [...sim.hurdleHit],
     inputs,
@@ -69,6 +72,7 @@ export function applySnapshot(sim: RaceSim, s: Snapshot) {
   });
   s.bolts.forEach((t, i) => sim.bolts[i] && (sim.bolts[i].timer = t));
   s.boxes.forEach((t, i) => sim.itemBoxes[i] && (sim.itemBoxes[i].timer = t));
+  s.boxItems.forEach((k, i) => sim.itemBoxes[i] && (sim.itemBoxes[i].item = ITEM_IDS[k]));
   sim.hazards.length = 0;
   for (const h of s.hazards) sim.hazards.push({ ...h });
   s.hurdleHit.forEach((v, i) => (sim.hurdleHit[i] = v));

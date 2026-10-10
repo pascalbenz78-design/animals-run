@@ -103,12 +103,13 @@ export class RaceSim {
         this.bolts.push({ x: p.x, z: p.z, s: st.s * L, d, timer: 0 });
       }
     }
-    for (const row of t.data.items) {
-      for (const d of row.ds) {
+    // Jede Reihe zeigt alle Items (je Reihe anders angeordnet)
+    t.data.items.forEach((row, r) => {
+      row.ds.forEach((d, k) => {
         const p = t.pointAt(row.s * L, d);
-        this.itemBoxes.push({ x: p.x, z: p.z, s: row.s * L, d, timer: 0, hidden: !!row.hidden });
-      }
-    }
+        this.itemBoxes.push({ x: p.x, z: p.z, s: row.s * L, d, timer: 0, hidden: !!row.hidden, item: ITEM_IDS[(k + r * 3) % ITEM_IDS.length], row: r });
+      });
+    });
     // Icon-Punkte: normale Punkte plus automatisch verteilte Punkte der Aufholhilfe
     for (const ic of t.data.icons) this.addIconPoint(ic.s * L, ic.d, 0);
     for (let k = 1; k <= ICONS.extraMax; k++) {
@@ -683,12 +684,21 @@ export class RaceSim {
       const dz = a.z - b.z;
       if (dx * dx + dz * dz > r2 || a.alt > 2.5) continue;
       b.timer = ITEMS.boxRespawn;
-      this.applyItem(a, this.rollItem(a.place));
+      if (b.hidden) {
+        this.applyItem(a, this.rollItem(a.place));
+        return;
+      }
+      this.applyItem(a, b.item);
+      // Neue Kiste: ein Item, das in der Reihe gerade fehlt (sonst zufällig)
+      const shown = new Set(this.itemBoxes.filter((o) => o.row === b.row && o !== b).map((o) => o.item));
+      const missing = ITEM_IDS.filter((id) => !shown.has(id));
+      const pool = missing.length ? missing : ITEM_IDS;
+      b.item = pool[Math.floor(this.rng() * pool.length) % pool.length];
       return;
     }
   }
 
-  /** Item auslosen: hinten eher hilfreich, vorne eher die Falle. */
+  /** Item auslosen (versteckte Kisten): hinten eher hilfreich, vorne eher die Falle. */
   private rollItem(place: number): ItemId {
     const odds = ITEMS.odds[Math.max(1, Math.min(8, place))];
     let r = this.rng() * odds.reduce((s, x) => s + x, 0);
