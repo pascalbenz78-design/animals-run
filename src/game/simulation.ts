@@ -225,7 +225,12 @@ export class RaceSim {
     a.powerHeld = rawInput.superkraft;
 
     // Mäusejagd: Autopilot übernimmt die Steuerung
-    const inp = a.active === 'maeusejagd' ? autopilotInput(this, a) : rawInput;
+    // Springen bleibt aber immer möglich (z. B. über Lavaspalten)
+    let inp = rawInput;
+    if (a.active === 'maeusejagd') {
+      inp = autopilotInput(this, a);
+      inp.springen = inp.springen || rawInput.springen;
+    }
     const stunned = a.stun > 0;
     const digging = a.active === 'spuernase';
     const ball = a.active === 'hamsterkugel';
@@ -418,7 +423,7 @@ export class RaceSim {
       const before = t.delta(hu.s, prevS);
       const after = t.delta(hu.s, a.s);
       if (!(before < 0 && after >= 0 && after - before < 5) || a.alt >= hu.height || prot) continue;
-      if (hu.gap && st.radius <= 0.5 && a.d >= hu.gap[0] && a.d <= hu.gap[1]) continue;
+      if (hu.gap && st.radius <= ELEMENTS.gapRadius && a.d >= hu.gap[0] && a.d <= hu.gap[1]) continue;
       a.speed *= OBSTACLES.hurdleSpeedKeep;
       a.stumble = OBSTACLES.hurdleStumble;
       this.hurdleHit[h] = this.time;
@@ -510,6 +515,7 @@ export class RaceSim {
       if (!a.grounded || a.swimming || a.active === 'spuernase' || Math.abs(a.d - r.d) > r.width / 2 || !crossed(r.s * L)) continue;
       if (kind === 'geysir' && !el.geyserActive(this.time, i)) continue;
       a.vy = ELEMENTS.ramp[kind];
+      a.alt = Math.max(a.alt, ELEMENTS.rampHeight[kind]);
       a.grounded = false;
       this.events.push({ type: 'ramp', animal: a.id });
     }

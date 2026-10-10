@@ -114,7 +114,7 @@ export class AiDriver {
     }
 
     // Kleine Tiere: hohe Hürden mit Lücke durch die Lücke nehmen
-    if (st.radius <= 0.5) {
+    if (st.radius <= ELEMENTS.gapRadius) {
       for (const hu of el.hurdles) {
         if (!hu.gap || st.jumpVelocity ** 2 / (2 * PHYSICS.gravity) >= hu.height + 0.05) continue;
         const ahead = t.delta(a.s, hu.s);
@@ -227,7 +227,7 @@ export class AiDriver {
         const ahead = t.delta(a.s, hu.s);
         if (ahead <= 0 || ahead > 30) continue;
         // Zu hoch zum Springen? Dann durch die Lücke (kleine Tiere)
-        if (hu.gap && st.radius <= 0.5 && st.jumpVelocity ** 2 / (2 * PHYSICS.gravity) < hu.height + 0.05) continue;
+        if (hu.gap && st.radius <= ELEMENTS.gapRadius && st.jumpVelocity ** 2 / (2 * PHYSICS.gravity) < hu.height + 0.05) continue;
         const key = h + a.lap * 1000;
         if (!this.jumpPlans.has(key)) {
           const miss = this.rng() < lvl.jumpMissChance;

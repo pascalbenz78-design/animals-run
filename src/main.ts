@@ -25,6 +25,7 @@ import {
   stopAnimalPreview,
   buildControlsTable,
   buildCupCards,
+  buildHelp,
   buildResults,
   buildStandings,
   buildTrackCards,
@@ -158,6 +159,8 @@ function startRace() {
   const trackId = cup ? cup.tracks[cup.index] : choice.track;
   const data = getTrack(trackId);
   document.getElementById('loading-name')!.textContent = data.name;
+  const [special, shortcut] = T.help.tracks[trackId];
+  document.getElementById('loading-tip')!.textContent = `💡 ${special} ${T.help.shortcut}: ${shortcut}`;
   document.getElementById('loading-sub')!.textContent = cup ? `${cup.name} · ${T.cup.race} ${cup.index + 1}/${cup.tracks.length}` : data.subtitle;
   showScreen('loading');
   showHud(false);
@@ -329,6 +332,7 @@ function go(screen: ScreenName) {
     );
   }
   if (screen === 'options') buildOptions();
+  if (screen === 'help') buildHelp();
   showScreen(screen);
 }
 

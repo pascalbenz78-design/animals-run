@@ -26,6 +26,7 @@
           <button class="btn big" id="btn-single" data-t="menu.single"></button>
           <button class="btn big cup" id="btn-cup" data-t="menu.cup"></button>
           <button class="btn" data-go="options" data-t="menu.options"></button>
+          <button class="btn" data-go="help" data-t="menu.help"></button>
           <button class="btn" data-go="controls" data-t="menu.controls"></button>
         </div>
         <button class="btn icon fs-btn" title="Vollbild">⛶</button>
@@ -80,11 +81,20 @@
         <button class="btn" data-go="main" data-t="menu.back"></button>
       </section>
 
+      <!-- Hilfe -->
+      <section id="scr-help" class="screen hidden">
+        <h2 data-t="help.title"></h2>
+        <div id="help-tabs" class="seg"></div>
+        <div id="help-body" class="panel help"></div>
+        <button class="btn" data-go="main" data-t="menu.back"></button>
+      </section>
+
       <!-- Laden -->
       <section id="scr-loading" class="screen hidden">
         <div class="loading-card">
           <div id="loading-name" class="loading-name"></div>
           <div id="loading-sub"></div>
+          <p id="loading-tip" class="loading-tip"></p>
           <p class="blink" data-t="loading"></p>
         </div>
       </section>

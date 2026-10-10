@@ -7,7 +7,7 @@ import { CUPS, TRACKS } from '../tracks';
 import { load } from '../storage';
 import { formatTime } from './hud';
 
-export type ScreenName = 'title' | 'main' | 'animal' | 'track' | 'options' | 'controls' | 'loading' | 'pause' | 'results' | 'ceremony' | 'none';
+export type ScreenName = 'title' | 'main' | 'animal' | 'track' | 'options' | 'controls' | 'loading' | 'pause' | 'results' | 'ceremony' | 'help' | 'none';
 
 const $ = <E extends HTMLElement>(id: string) => document.getElementById(id) as E;
 
@@ -21,7 +21,7 @@ export function applyTexts() {
   });
 }
 
-const SCREENS: ScreenName[] = ['title', 'main', 'animal', 'track', 'options', 'controls', 'loading', 'pause', 'results', 'ceremony'];
+const SCREENS: ScreenName[] = ['title', 'main', 'animal', 'track', 'options', 'controls', 'loading', 'pause', 'results', 'ceremony', 'help'];
 
 export function showScreen(name: ScreenName) {
   for (const s of SCREENS) $(`scr-${s}`).classList.toggle('hidden', s !== name);
@@ -68,7 +68,8 @@ function showAnimalInfo(id: string) {
     <h3>${a.name} <span class="species">${T.species[a.species]}</span></h3>
     <div class="desc">${T.animals[a.id]}</div>
     ${statRows(SPECIES_STATS[a.species])}
-    <div class="power"><span class="power-ico">${a.icon}</span><div><b>${powerName}</b><br>${powerText}</div></div>`;
+    <div class="power"><span class="power-ico">${a.icon}</span><div><b>${powerName}</b><br>${powerText}</div></div>
+    <div class="tipline">💡 ${T.help.animals[a.id][0]}</div>`;
   preview?.show(id);
 }
 
@@ -180,6 +181,27 @@ export function buildStandings(tableId: string, rows: StandingRow[]) {
           `<tr class="${r.me ? 'me' : ''}"><td>${i + 1}.</td><td>${r.name}</td><td class="mono"><b>${r.points}</b></td><td class="plus">${r.gained ? '+' + r.gained : ''}</td></tr>`,
       )
       .join('');
+}
+
+/** Hilfe: Spielregeln, Tiere und Strecken (FAQ) in drei Bereichen */
+export function buildHelp(tab: 'regeln' | 'tiere' | 'strecken' = 'regeln') {
+  segmented($('help-tabs'), (['regeln', 'tiere', 'strecken'] as const).map((k) => [k, T.help.tabs[k]]), tab, (v) => buildHelp(v));
+  const body = $('help-body');
+  if (tab === 'regeln') {
+    body.innerHTML = T.help.rules.map(([h, txt]) => `<h3>${h}</h3><p>${txt}</p>`).join('');
+  } else if (tab === 'tiere') {
+    body.innerHTML = ANIMALS.map((a) => {
+      const [strength, tip] = T.help.animals[a.id];
+      const [powerName] = T.powers[a.power];
+      return `<h3>${a.icon} ${a.name} <small>· ${T.species[a.species]} · ${powerName}</small></h3><p>${strength}<br><b>${T.help.tip}:</b> ${tip}</p>`;
+    }).join('');
+  } else {
+    body.innerHTML = TRACKS.map((t, i) => {
+      const [special, shortcut] = T.help.tracks[t.id];
+      return `<h3>${i + 1}. ${t.name} <small>· ${t.subtitle}</small></h3><p>${special}<br><b>${T.help.shortcut}:</b> ${shortcut}</p>`;
+    }).join('');
+  }
+  body.scrollTop = 0;
 }
 
 export function buildControlsTable() {

@@ -236,6 +236,12 @@ export const ELEMENTS = {
   smallRadius: 0.5,
   hoop: { radius: 1.3, minAlt: 0.45, boost: 1.25, duration: 1.3 },
   ramp: { schanze: 11, duene: 8.5, geysir: 13 },
+  /** Höhe der Rampen (Absprung von oben, damit die Tiere nicht durch die Rampe laufen) */
+  rampHeight: { schanze: 0.9, duene: 1.1, geysir: 0 },
+  /** Länge der Rampen in Laufrichtung */
+  rampLength: { schanze: 3.2, duene: 5, geysir: 0 },
+  /** Durch Lücken in Steilwänden passen alle ausser Pferden (Radius bis hier) */
+  gapRadius: 0.8,
   geyser: { period: 4.5, active: 1.3 },
   gate: { stumble: 0.5 },
   log: { height: 0.75, radius: 0.55 },

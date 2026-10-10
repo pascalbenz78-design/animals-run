@@ -133,7 +133,8 @@ export class RaceView {
       const heading = a.prevHeading + wrapAngle(a.heading - a.prevHeading) * alpha;
       // Schwimmen: Tier sinkt ein; auf Brücken steht es auf den Brettern
       const onBridge = a.shortcut < 0 && a.surface === '' && sim.el.bridgeAt(a.s) >= 0;
-      const ground = t.heightAt(a.s) + (a.swimming ? -0.5 * Math.min(1, sim.stats[a.id].radius + 0.2) : onBridge ? 0.42 : 0);
+      const ramp = a.grounded && a.shortcut < 0 ? sim.el.rampLift(a.s, a.d) : 0;
+      const ground = t.heightAt(a.s) + ramp + (a.swimming ? -0.5 * Math.min(1, sim.stats[a.id].radius + 0.2) : onBridge ? 0.42 : 0);
       const pp = this.pos[a.id];
       pp.x = x;
       pp.y = ground + alt;

@@ -189,6 +189,18 @@ export class Elements {
     return { warn: false, front: hw - k * hw * 2 };
   }
 
+  /** Höhe der Rampenoberfläche bei (s, d) – für die Darstellung der Tiere auf Schanzen und Dünen */
+  rampLift(s: number, d: number): number {
+    for (const r of this.data.ramps ?? []) {
+      const kind = r.kind ?? 'schanze';
+      const len = ELEMENTS.rampLength[kind];
+      if (!len || Math.abs(d - r.d) > r.width / 2) continue;
+      const rel = this.track.delta(s, r.s * this.track.length);
+      if (rel >= 0 && rel <= len) return ELEMENTS.rampHeight[kind] * (1 - rel / len);
+    }
+    return 0;
+  }
+
   geyserActive(time: number, i: number): boolean {
     const G = ELEMENTS.geyser;
     const ph = (((time + i * 1.7) % G.period) + G.period) % G.period;

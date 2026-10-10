@@ -211,6 +211,18 @@ export function autopilotInput(sim: RaceSim, a: AnimalState): Input {
       const ahead = t.delta(a.s, hu.s);
       if (ahead > 0 && ahead / a.speed <= tApex) inp.springen = !a.jumpHeld;
     }
+    // Lavaspalten, Löcher und Wassergräben über die ganze Breite überspringen
+    for (const z of sim.el.zones) {
+      if (z.type !== 'lava' && z.type !== 'loch' && z.type !== 'wasser') continue;
+      if (z.d0 > -maxD || z.d1 < maxD || z.length > 7) continue;
+      const ahead = t.delta(a.s, z.s);
+      if (ahead > 0 && ahead / a.speed <= tApex * 0.75) inp.springen = !a.jumpHeld;
+    }
+    // Rollende Stämme
+    for (let i = 0; i < (sim.el.data.logs ?? []).length; i++) {
+      const ahead = t.delta(a.s, sim.el.logS(i, sim.time + tApex));
+      if (ahead > 0 && ahead < 14 && ahead / a.speed <= tApex + 0.05) inp.springen = !a.jumpHeld;
+    }
   }
   return inp;
 }
