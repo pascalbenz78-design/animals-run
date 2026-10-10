@@ -1378,3 +1378,32 @@ td.wait {
   text-shadow: 0 3px 0 var(--ink), 0 6px 12px rgba(0, 0, 0, 0.4);
   animation: blink 1.2s ease-in-out infinite;
 }
+
+/* Auswahl-Knöpfe (Strecke/Cup in der Lobby) */
+.opt.stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chips button {
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 15px;
+  min-height: 40px;
+  padding: 6px 12px;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  background: var(--cream);
+  color: var(--ink);
+  box-shadow: 0 2px 0 var(--ink);
+  cursor: pointer;
+}
+.chips button.on {
+  background: var(--orange);
+  color: #fff;
+}

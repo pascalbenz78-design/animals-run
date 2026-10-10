@@ -11,7 +11,7 @@ export const NET = {
   codeChars: 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789',
   codeLength: 4,
   /** Höchstens so viele Menschen pro Rennen */
-  maxPlayers: 3,
+  maxPlayers: 4,
   /** Spielzustand vom Gastgeber: alle so vielen Simulationsschritte (60 Hz / 3 = 20-mal pro Sekunde) */
   snapshotEvery: 3,
   /** Ping-Intervall in Millisekunden */

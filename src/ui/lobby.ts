@@ -31,16 +31,17 @@ export function renderLobby(mp: Multiplayer) {
       box.dataset.built = '1';
       box.innerHTML = `
         <div class="opt"><span>${T.mp.mode}</span><div id="lobby-mode" class="seg"></div></div>
-        <div class="opt" id="lobby-track-row"><span>${T.mp.track}</span><select id="lobby-track">${TRACKS.map((t) => `<option value="${t.id}">${t.name}</option>`).join('')}</select></div>
-        <div class="opt" id="lobby-cup-row"><span>${T.mp.cup}</span><select id="lobby-cup">${CUPS.map((c) => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('')}</select></div>
+        <div class="opt stack" id="lobby-track-row"><span>${T.mp.track}</span><div id="lobby-track" class="chips">${TRACKS.map((t) => `<button data-v="${t.id}">${t.name}</button>`).join('')}</div></div>
+        <div class="opt stack" id="lobby-cup-row"><span>${T.mp.cup}</span><div id="lobby-cup" class="chips">${CUPS.map((c) => `<button data-v="${c.id}">${c.icon} ${c.name}</button>`).join('')}</div></div>
         <div class="opt"><span>${T.mp.level}</span><div id="lobby-level" class="seg"></div></div>`;
       segmented($('lobby-mode'), (['einzel', 'cup'] as GameMode[]).map((m) => [m, T.mp.modes[m]]), l.mode, (v) => mp.setSettings({ mode: v }));
       segmented($('lobby-level'), (['leicht', 'mittel', 'schwer'] as AiLevel[]).map((v) => [v, T.difficulty[v]]), l.level, (v) => mp.setSettings({ level: v }));
-      $<HTMLSelectElement>('lobby-track').addEventListener('change', (e) => mp.setSettings({ track: (e.target as HTMLSelectElement).value }));
-      $<HTMLSelectElement>('lobby-cup').addEventListener('change', (e) => mp.setSettings({ cup: (e.target as HTMLSelectElement).value }));
+      // Strecken und Cups als Knöpfe (eine Auswahlliste würde bei jeder Lobby-Aktualisierung zuklappen)
+      chips($('lobby-track'), (v) => mp.setSettings({ track: v }));
+      chips($('lobby-cup'), (v) => mp.setSettings({ cup: v }));
     }
-    $<HTMLSelectElement>('lobby-track').value = l.track;
-    $<HTMLSelectElement>('lobby-cup').value = l.cup;
+    markChip($('lobby-track'), l.track);
+    markChip($('lobby-cup'), l.cup);
     $('lobby-track-row').classList.toggle('hidden', l.mode !== 'einzel');
     $('lobby-cup-row').classList.toggle('hidden', l.mode !== 'cup');
   } else {
@@ -66,6 +67,19 @@ export function renderLobby(mp: Multiplayer) {
     btn.disabled = !me?.animal;
     status.textContent = me?.ready ? T.mp.waitHost : '';
   }
+}
+
+function chips(el: HTMLElement, onPick: (v: string) => void) {
+  el.querySelectorAll<HTMLButtonElement>('button').forEach((b) =>
+    b.addEventListener('click', () => {
+      markChip(el, b.dataset.v!);
+      onPick(b.dataset.v!);
+    }),
+  );
+}
+
+function markChip(el: HTMLElement, value: string) {
+  el.querySelectorAll<HTMLButtonElement>('button').forEach((b) => b.classList.toggle('on', b.dataset.v === value));
 }
 
 function escapeHtml(s: string): string {

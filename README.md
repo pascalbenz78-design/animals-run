@@ -2,7 +2,7 @@
 
 Ein Tier-Rennspiel im Browser: Pferde, Katzen, ein Husky und ein Hamster laufen auf Parcours mit Hindernissen um die Wette. Läuft am PC und am Handy, ohne Installation, ohne Werbung, ohne Anmeldung.
 
-> **Stand:** Phase 5 von 5 – fertig: Ton und Musik, Mehrspieler bis 3 Personen, 8 Strecken, 2 Cups mit Siegerehrung, alle 10 Tiere mit Superkräften, Items, 7 Computergegner. Details in `CLAUDE.md`.
+> **Stand:** Phase 5 von 5 – fertig: Ton und Musik, Mehrspieler bis 4 Personen, 8 Strecken, 2 Cups mit Siegerehrung, alle 10 Tiere mit Superkräften, Items, 7 Computergegner. Details in `CLAUDE.md`.
 
 ## Steuerung
 
@@ -97,9 +97,8 @@ Für ein Update: `npm run build` und den neuen `dist`-Ordner wieder hineinziehen
 4. Auf GitHub im Repository: **Settings → Pages → Branch: `gh-pages`** auswählen und speichern.
 5. Nach ein bis zwei Minuten ist das Spiel unter `https://DEIN-NAME.github.io/animals-run/` erreichbar.
 
-(In Phase 5 wird dafür noch eine automatische Veröffentlichung eingerichtet.)
 
-### Mehrspieler (bis 3 Personen)
+### Mehrspieler (bis 4 Personen)
 
 1. Eine Person wählt **Mehrspieler → Rennen erstellen** und erhält einen **4-stelligen Raumcode**.
 2. Die anderen wählen **Mehrspieler**, geben den Code ein und tippen **Beitreten**.

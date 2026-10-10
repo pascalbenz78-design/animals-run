@@ -71,7 +71,7 @@ scripts        simrace.ts, diag.ts, trackinfo.ts
   - Menüs: Einzelrennen, Cup, Optionen, Steuerung; Bestzeiten und bestes Cup-Ergebnis gespeichert
 - [x] **Phase 4 – Mehrspieler** (abgeschlossen, wartet auf Abnahme)
   - Vorab: Hilfe & Tipps (Regeln, Tiere, Strecken-FAQ), Springen während Superkräften, Rampen-Darstellung
-  - Raumcode, Lobby (Name, Tierwahl, Bereit, Ping, Einstellungen des Gastgebers), bis 3 Personen + Computer
+  - Raumcode, Lobby (Name, Tierwahl, Bereit, Ping, Einstellungen des Gastgebers), bis 4 Personen + Computer
   - Gastgeber rechnet, 20 Schnappschüsse/s, Client-Vorhersage mit Korrektur, Einzelrennen und Cup
   - Abbruch: Computer übernimmt, Wiedereinstieg mit Code; Gastgeber weg → Meldung für alle
   - Getestet: `scripts/nettest.ts` und zwei Browser-Tabs auf einem PC (Lobby, Rennen, Cup, Abbruch, Wiedereinstieg)

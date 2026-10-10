@@ -33,6 +33,8 @@ export class InputManager {
   constructor() {
     window.addEventListener('keydown', (e) => {
       this.firstInteraction();
+      // In Eingabefeldern (Name, Raumcode) gehören alle Tasten dem Feld – auch S, P, W, A, D und Leertaste
+      if (isTyping(e.target)) return;
       if (e.code === 'KeyS' || e.code === 'ArrowDown') {
         this.braking = true;
         e.preventDefault();
@@ -44,7 +46,7 @@ export class InputManager {
       if (KEYMAP[e.code]) {
         this.keys.add(e.code);
         // Leertaste/Pfeile sollen die Seite nicht scrollen
-        if (!(e.target instanceof HTMLInputElement)) e.preventDefault();
+        e.preventDefault();
       }
     });
     window.addEventListener('keyup', (e) => {
@@ -125,3 +127,7 @@ export class InputManager {
 }
 
 export const isTouchDevice = () => window.matchMedia?.('(pointer: coarse)').matches || 'ontouchstart' in window;
+
+function isTyping(t: EventTarget | null): boolean {
+  return t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement || (t instanceof HTMLElement && t.isContentEditable);
+}

@@ -158,7 +158,7 @@ export const T = {
       ['Untergrund', 'Matsch und Sand bremsen, Eis ist rutschig (früh lenken), im tiefen Wasser wird geschwommen. Lava, Löcher und Schluchten: Wer hineinfällt, wird nach 1,5 Sekunden zurückgesetzt.'],
       ['Abkürzungen', 'Jede Strecke hat eine Abkürzung: offen für alle · nur für den Hamster (Tunnel) · nur mit hohem Sprung über Schanze oder Geysir · versteckt – Tiras Spürnase zeigt den Weg dorthin. Abkürzungen sind auf der Minikarte gestrichelt eingezeichnet (die versteckten nicht).'],
       ['Cup', 'Vier Strecken hintereinander mit denselben Gegnern. Punkte pro Rennen: 15 – 12 – 10 – 8 – 6 – 4 – 2 – 1. Am Schluss gibt es die Siegerehrung.'],
-      ['Mehrspieler', 'Bis zu 3 Personen auf verschiedenen Geräten: Eine Person wählt «Mehrspieler → Rennen erstellen» und nennt den 4-stelligen Raumcode, die anderen treten mit dem Code bei. Jedes Tier gibt es nur einmal; freie Plätze füllen Computergegner. Das Fenster des Gastgebers muss sichtbar bleiben. Bricht eine Verbindung ab, übernimmt ein Computer – mit demselben Code kann man wieder einsteigen.'],
+      ['Mehrspieler', 'Bis zu 4 Personen auf verschiedenen Geräten: Eine Person wählt «Mehrspieler → Rennen erstellen» und nennt den 4-stelligen Raumcode, die anderen treten mit dem Code bei. Jedes Tier gibt es nur einmal; freie Plätze füllen Computergegner. Das Fenster des Gastgebers muss sichtbar bleiben. Bricht eine Verbindung ab, übernimmt ein Computer – mit demselben Code kann man wieder einsteigen.'],
     ] as [string, string][],
     /** Stärken und Eigenheiten je Tier */
     animals: {
@@ -228,7 +228,7 @@ export const T = {
     errServer: 'Keine Verbindung zum Vermittlungsserver. Bist du mit dem Internet verbunden?',
     errGeneric: 'Die Verbindung hat nicht geklappt. Bitte nochmals versuchen.',
     errTimeout: 'Der Gastgeber antwortet nicht. Ist der Raum noch offen?',
-    errFull: 'Der Raum ist voll (höchstens 3 Personen).',
+    errFull: 'Der Raum ist voll (höchstens 4 Personen).',
     errRunning: 'Das Rennen läuft schon. Bitte warten, bis es fertig ist, und dann nochmals beitreten.',
     errVersion: 'Unterschiedliche Spielversionen – bitte auf beiden Geräten die Seite neu laden.',
     errCode: 'Bitte den 4-stelligen Code eingeben.',

@@ -171,7 +171,7 @@ Baukasten, aus dem die Strecken zusammengesetzt werden:
 
 1. **Einzelrennen:** Strecke, Tier und Schwierigkeit wählen.
 2. **Cup:** 4 Strecken hintereinander (Pfoten-Cup oder Hufeisen-Cup). Punkte pro Rennen: 15 – 12 – 10 – 8 – 6 – 4 – 2 – 1. Zwischenwertung nach jedem Rennen, am Schluss **Siegerehrung auf dem Podest** mit Pokal-Animation.
-3. **Mehrspieler:** Einzelrennen oder Cup mit bis zu 3 Personen auf verschiedenen Geräten (siehe unten).
+3. **Mehrspieler:** Einzelrennen oder Cup mit bis zu 4 Personen auf verschiedenen Geräten (siehe unten).
 
 ### Computergegner, drei Stufen
 
@@ -185,7 +185,7 @@ Die Computergegner folgen der Ideallinie der Strecke mit Abweichung je nach Stuf
 
 ---
 
-## Mehrspieler (bis zu 3 Personen)
+## Mehrspieler (bis zu 4 Personen)
 
 - **Ablauf:** Ein Spieler wählt «Mehrspieler → Rennen erstellen» und erhält einen **4-stelligen Raumcode**. Die anderen wählen «Beitreten» und geben den Code ein. In der Lobby wählt jeder sein Tier (jedes Tier nur einmal pro Rennen), der Ersteller wählt Einzelrennen oder Cup, Strecke(n) und Schwierigkeit der Computergegner. Start, sobald alle «Bereit» gedrückt haben. Freie Plätze bis 8 füllen Computergegner.
 - **Technik:** WebRTC über PeerJS (Datenkanäle). Das Gerät des Erstellers ist der **Host** und rechnet das Rennen verbindlich (Positionen, Kollisionen, Items, Superkräfte, Computergegner). Die anderen Geräte senden nur ihre Eingaben. Der Host verschickt den Spielzustand ca. 20-mal pro Sekunde; die anderen Geräte zeigen die Tiere geglättet (Interpolation) und berechnen die eigene Bewegung sofort vor (Client-Vorhersage mit Korrektur), damit sich die Steuerung direkt anfühlt.
@@ -379,3 +379,6 @@ Hier stehen Entscheide, die während der Entwicklung getroffen wurden (mit Begr�
 56. **Intro:** Nach dem ersten Tippen auf das Titelbild läuft ein Intro (ca. 40 s, jedes Tier 3,4 s mit Beschreibung der Superkraft, damit man sie in Ruhe lesen kann): Trommelwirbel, und das ganze Rudel stürmt an der Kamera vorbei (Fanfare). Danach fährt die Kamera die Reihe ab und stellt jedes Tier mit Name, Tierart und Superkraft vor (jedes Tier ruft), zum Schluss springt das Logo mit Beckenschlag herein. Man kann es jederzeit überspringen (Taste, Tippen oder «Überspringen»); in den Optionen lässt es sich ausschalten («Intro beim Start»). Das Intro startet erst nach dem ersten Tippen, weil der Browser vorher keinen Ton erlaubt.
 57. **Item-Kisten zeigen ihr Item** (⚡ 🐌 🛡️ 💩, in passender Farbe), damit man das gewünschte gezielt anlaufen kann. Jede Reihe zeigt zu Beginn alle vier Items; eine eingesammelte Kiste erscheint nach 3 s mit einem Item wieder, das in der Reihe gerade fehlt. Die im Laub versteckten Kisten bleiben eine Überraschung und werden wie bisher je nach Platz ausgelost (hinten eher hilfreich). Computergegner laufen je nach Platz das passende Item an. Mehrspieler-Protokoll Version 3 (die Kisten-Items werden mitgeschickt).
 58. **App auf dem Startbildschirm:** Web-App-Manifest (`public/manifest.webmanifest`) mit Pfoten-Icons (auch «maskable» für Android): Auf Android startet das Spiel vom Startbildschirm im Vollbild und im Querformat, auf dem iPhone ohne Browserleiste. Bewusst ohne Service Worker (kein Offline-Zwischenspeicher), damit Updates sofort ankommen.
+59. **Mehrspieler bis 4 Personen** (`NET.maxPlayers`); die übrigen 4 Plätze füllen Computergegner. Eine fünfte Person erhält «Der Raum ist voll».
+60. **Strecken- und Cup-Wahl in der Lobby als Knöpfe** statt Auswahlliste: Die Lobby aktualisiert sich jede Sekunde (Ping), dabei klappte die Auswahlliste vor allem am Handy sofort wieder zu – man blieb beim Bauernhof.
+61. **Eingabefelder** (Name, Raumcode): Die Spieltasten (S = Bremsen, P = Pause, W/A/D, Leertaste) werden dort nicht mehr abgefangen, alle Buchstaben lassen sich tippen.
