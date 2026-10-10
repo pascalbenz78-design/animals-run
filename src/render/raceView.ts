@@ -299,6 +299,14 @@ export class RaceView {
       const p = this.pos[e.animal];
       for (let i = 0; i < 24; i++) this.spawnDust(p.x + Math.cos(i) * 1.2, p.y + 0.2, p.z + Math.sin(i) * 1.2, 'weg');
     }
+    if (e.type === 'welle') {
+      const p = this.pos[e.animal];
+      for (let i = 0; i < 22; i++) this.spawnDust(p.x + Math.cos(i) * 1.1, p.y + 0.6, p.z + Math.sin(i) * 1.1, 'wasser');
+    }
+    if (e.type === 'liane') {
+      const p = this.pos[e.animal];
+      for (let i = 0; i < 10; i++) this.spawnDust(p.x + Math.cos(i) * 0.6, p.y + 1.6, p.z + Math.sin(i) * 0.6, 'weg');
+    }
     if (e.type === 'splash') {
       const p = this.pos[e.animal];
       for (let i = 0; i < 14; i++) this.spawnDust(p.x + Math.cos(i) * 0.8, p.y + 0.5, p.z + Math.sin(i) * 0.8, 'wasser');

@@ -137,6 +137,30 @@ export class AiDriver {
       }
     }
 
+    // Lianen: hineinspringen (nicht auf «leicht»)
+    if (lvl.boltSeek > 0.5 && !passThrough) {
+      for (const li of el.data.lianas ?? []) {
+        const ahead = t.delta(a.s, li.s * t.length);
+        if (ahead <= 0 || ahead > 35) continue;
+        desiredD = li.d;
+        approach = Math.min(approach, Math.max(3, ahead));
+        const tUp = (st.jumpVelocity - Math.sqrt(Math.max(0, st.jumpVelocity ** 2 - 2 * PHYSICS.gravity * (ELEMENTS.liane.minAlt + 0.3)))) / PHYSICS.gravity;
+        const tApex = st.jumpVelocity / PHYSICS.gravity;
+        if (ahead / Math.max(1, a.speed) <= (tUp + tApex) / 2 + 0.05) mustJump = true;
+      }
+    }
+    // Wellen: springen, wenn die Wellenfront gleich beim Tier ist
+    if (a.grounded && !passThrough && a.hitImmune <= 0) {
+      for (let i = 0; i < (el.data.waves ?? []).length; i++) {
+        const w = el.data.waves![i];
+        const look2 = 0.25;
+        const rel = t.delta(w.s * t.length - w.length / 2, a.s + a.speed * look2);
+        if (rel < 0 || rel > w.length) continue;
+        const wv = el.wave(i, sim.time + look2);
+        if (wv.active && wv.front !== null && Math.abs(wv.front - a.d) < ELEMENTS.wave.band + st.radius + 0.6 && this.rng() < lvl.boltSeek + 0.1) mustJump = true;
+      }
+    }
+
     // Heuballen, Steine, Kakteen und Fallen (Äpfel, Matschfallen) ausweichen
     let avoiding = false;
     if (!passThrough) {

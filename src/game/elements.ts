@@ -189,6 +189,22 @@ export class Elements {
     return { warn: false, front: hw - k * hw * 2 };
   }
 
+  /**
+   * Welle: front = seitliche Lage der Wellenfront (oder null), active = rollt gerade über die Bahn
+   * (vorher rollt sie sichtbar vom Meer heran).
+   */
+  wave(i: number, time: number): { front: number | null; active: boolean } {
+    const w = this.data.waves![i];
+    if (time < 0) return { front: null, active: false };
+    const W = ELEMENTS.wave;
+    const ph = (((time + (w.phase ?? 0)) % w.period) + w.period) % w.period;
+    const hw = this.track.halfWidth;
+    if (ph < W.warn) return { front: -hw - 12 + (ph / W.warn) * 10, active: false };
+    const k = (ph - W.warn) / W.sweep;
+    if (k > 1) return { front: null, active: false };
+    return { front: -hw - 2 + k * (hw * 2 + 4), active: true };
+  }
+
   /** Höhe der Rampenoberfläche bei (s, d) – für die Darstellung der Tiere auf Schanzen und Dünen */
   rampLift(s: number, d: number): number {
     for (const r of this.data.ramps ?? []) {

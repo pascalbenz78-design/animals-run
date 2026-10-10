@@ -55,6 +55,11 @@ export const SANDSTRAND: TrackData = {
   // Schmaler Steg über das Wasser: wer darauf bleibt, muss nicht schwimmen
   bridges: [{ s: 0.58, length: 44, width: 3.6, sway: 0, period: 1, below: 'wasser' }],
   hoops: [{ s: 0.04, d: 0 }],
+  // Wellen rollen vom Meer (rechts) über den Strand
+  waves: [
+    { s: 0.71, length: 30, period: 6.5 },
+    { s: 0.825, length: 26, period: 7, phase: 3 },
+  ],
   shortcuts: [{ from: 0.28, to: 0.43, side: -1, kind: 'klein' }],
   bolts: [
     { s: 0.25, ds: [-5.5, -3.3, -1.1, 1.1, 3.3, 5.5] },

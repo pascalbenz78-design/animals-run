@@ -152,6 +152,22 @@ export interface AvalancheDef {
   period: number;
 }
 
+/** Lianen über der Bahn: wer hineinspringt, schwingt mit Schub weiter (z. B. über Matsch) */
+export interface LianaDef {
+  s: number;
+  /** Seitliche Mitte und Breite des Lianenvorhangs */
+  d: number;
+  width: number;
+}
+
+/** Welle: rollt in Abständen vom Meer (rechts) quer über die Bahn und schiebt Tiere zur Seite */
+export interface WaveDef {
+  s: number;
+  length: number;
+  period: number;
+  phase?: number;
+}
+
 /** Abkürzung abseits der Bahn */
 export interface ShortcutDef {
   /** Einstieg und Ausstieg (Anteil der Runde) */
@@ -237,6 +253,8 @@ export interface TrackData {
   spinners?: SpinnerDef[];
   bridges?: BridgeDef[];
   avalanches?: AvalancheDef[];
+  lianas?: LianaDef[];
+  waves?: WaveDef[];
   shortcuts?: ShortcutDef[];
   landmarks: LandmarkDef[];
   decor: DecorDef;

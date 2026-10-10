@@ -1,6 +1,6 @@
 import type { TrackData } from './types';
 
-/** Strecke 7: Dschungel (Regenzeit) – Fluss mit Strömung, schaukelnde Hängebrücke, Wasserfall, Tempeltor. */
+/** Strecke 7: Dschungel (Regenzeit) – Lianen, Fluss mit Strömung, schaukelnde Hängebrücke, Wasserfall, Tempeltor. */
 export const DSCHUNGEL: TrackData = {
   id: 'dschungel',
   name: 'Dschungel',
@@ -59,6 +59,12 @@ export const DSCHUNGEL: TrackData = {
   // Hängebrücke über den Fluss: schaukelt, wer herunterfällt, muss gegen die Strömung schwimmen
   bridges: [{ s: 0.865, length: 36, width: 4.6, sway: 1.5, period: 3.2, below: 'wasser' }],
   gates: [{ s: 0.755, period: 5.5, open: 0.6 }],
+  // Lianen direkt vor den Matschfeldern: hineinspringen und darüber schwingen
+  lianas: [
+    { s: 0.028, d: -3, width: 7 },
+    { s: 0.48, d: 2, width: 7 },
+    { s: 0.948, d: 0, width: 8 },
+  ],
   shortcuts: [{ from: 0.17, to: 0.31, side: -1, kind: 'versteckt' }],
   bolts: [
     { s: 0.1, ds: [-5, -2.9, -0.9, 0.9, 2.9, 5] },

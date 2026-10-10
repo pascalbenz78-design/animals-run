@@ -25,5 +25,5 @@ for (const data of TRACKS) {
     for (const a of sim.animals) if (a.finished) laps.push(a.finishTime / 3);
   }
   laps.sort((a, b) => a - b);
-  console.log(`${data.name.padEnd(12)} Runde Ø ${laps[Math.floor(laps.length / 2)].toFixed(1)} s | Stürze ${c.fall ?? 0} Stolpern ${c.stumble ?? 0} Prallen ${c.bump ?? 0} Platschen ${c.splash ?? 0} Reifen ${c.hoop ?? 0} Schanzen ${c.ramp ?? 0} Gestoppt ${c.stunned ?? 0} | Abkürzungen: ${[...sc].map(([k, v]) => k + ':' + v).join(' ')}`);
+  console.log(`${data.name.padEnd(12)} Runde Ø ${laps[Math.floor(laps.length / 2)].toFixed(1)} s | Stürze ${c.fall ?? 0} Stolpern ${c.stumble ?? 0} Prallen ${c.bump ?? 0} Platschen ${c.splash ?? 0} Reifen ${c.hoop ?? 0} Schanzen ${c.ramp ?? 0} Lianen ${c.liane ?? 0} Wellen ${c.welle ?? 0} Gestoppt ${c.stunned ?? 0} | Abkürzungen: ${[...sc].map(([k, v]) => k + ':' + v).join(' ')}`);
 }

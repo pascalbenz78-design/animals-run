@@ -119,6 +119,18 @@ export const sfx = {
     A.tone(1568, 0.3, { type: 'sine', vol: 0.12, reverb: 0.5 });
     A.noise(0.35, { vol: 0.08, freq: 600, slideTo: 3000 });
   },
+  liane(vol = 1, pan = 0) {
+    // Schwung: Rauschen nach oben und ein fröhlicher Ruf
+    A.noise(0.5, { vol: 0.1 * vol, freq: 500, slideTo: 2500, pan });
+    A.tone(440, 0.25, { type: 'triangle', vol: 0.1 * vol, slideTo: 880, pan });
+    A.tone(880, 0.3, { type: 'triangle', vol: 0.08 * vol, slideTo: 660, at: A.now + 0.22, pan });
+  },
+  wave(vol = 1, pan = 0) {
+    A.noise(0.9, { vol: 0.2 * vol, freq: 2500, type: 'lowpass', slideTo: 300, pan });
+  },
+  waveRush(vol = 1) {
+    A.noise(1.6, { vol: 0.06 * vol, freq: 300, type: 'lowpass', slideTo: 1500 });
+  },
   ramp(vol = 1, pan = 0) {
     A.tone(180, 0.35, { type: 'sine', vol: 0.12 * vol, slideTo: 700, pan });
   },

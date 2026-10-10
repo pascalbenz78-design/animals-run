@@ -38,6 +38,8 @@ export class ElementsView {
     this.buildSpinners(shadows);
     this.buildBridges(shadows);
     this.buildAvalanches();
+    this.buildLianas(shadows);
+    this.buildWaves();
     this.buildShortcuts();
   }
 
@@ -492,6 +494,95 @@ export class ElementsView {
           if (st.front === null) return;
           this.place(wall, sMid, st.front);
           wall.rotation.x = raceTime * 2;
+        },
+      });
+    });
+  }
+
+  private buildLianas(shadows: boolean) {
+    const L = ELEMENTS.liane;
+    (this.el.data.lianas ?? []).forEach((li, n) => {
+      const g = new THREE.Group();
+      const rnd = mulberry32(n + 41);
+      const half = li.width / 2 + 0.8;
+      // Zwei Stämme mit querliegendem Ast
+      const frame: THREE.BufferGeometry[] = [];
+      for (const side of [-1, 1]) {
+        frame.push(part(G.cyl(0.35, 0.45, L.top + 1, 7), 0x5a3a20, { pos: [side * half, (L.top + 1) / 2, 0] }));
+        frame.push(part(G.dodeca(1.6), 0x2f7a2a, { pos: [side * half, L.top + 1.4, 0] }));
+      }
+      frame.push(part(G.box(half * 2 + 0.6, 0.35, 0.35), 0x6b4423, { pos: [0, L.top, 0] }));
+      // Bananen als Blickfang
+      frame.push(part(G.ball(0.25), 0xffd23f, { pos: [0.4, L.top - 0.35, 0.1] }), part(G.ball(0.22), 0xf5c82a, { pos: [0.65, L.top - 0.4, 0.05] }));
+      g.add(mesh(frame, shadows));
+      // Einzelne Lianen, oben aufgehängt, schaukeln leicht
+      const vines: THREE.Object3D[] = [];
+      const count = Math.max(4, Math.round(li.width / 0.75));
+      for (let k = 0; k < count; k++) {
+        const x = -li.width / 2 + ((k + 0.5) / count) * li.width;
+        const len = L.top - L.bottom - rnd() * 0.5;
+        const parts: THREE.BufferGeometry[] = [part(G.cyl(0.05, 0.06, len, 5), 0x3f6a22, { pos: [0, -len / 2, 0] })];
+        for (let j = 0; j < 4; j++) parts.push(part(G.dodeca(0.16), j % 2 ? 0x4f9a2a : 0x3f8a2a, { pos: [(rnd() - 0.5) * 0.2, -len * (0.2 + j * 0.22), 0] }));
+        parts.push(part(G.ball(0.12), 0x5a8a2a, { pos: [0, -len, 0] }));
+        const v = mesh(parts, false);
+        v.position.set(x, L.top, 0);
+        g.add(v);
+        vines.push(v);
+      }
+      this.place(g, li.s * this.track.length, li.d);
+      this.group.add(g);
+      this.anims.push({
+        update: (time) => {
+          vines.forEach((v, k) => {
+            v.rotation.x = Math.sin(time * 1.4 + k * 0.9) * 0.12;
+            v.rotation.z = Math.sin(time * 1.1 + k * 1.7) * 0.05;
+          });
+        },
+      });
+    });
+  }
+
+  private buildWaves() {
+    const t = this.track;
+    const hw = t.halfWidth;
+    const waterColor = this.el.data.theme.water ?? 0x3fa0d6;
+    (this.el.data.waves ?? []).forEach((w, i) => {
+      const s0 = w.s * t.length - w.length / 2;
+      // Meer neben der Bahn (rechts), von dort kommen die Wellen
+      this.strip(s0 - 6, w.length + 12, -hw - 16, -hw - 0.5, 0.08, new THREE.MeshPhongMaterial({ color: waterColor, shininess: 120, specular: 0xd8f2ff, transparent: true, opacity: 0.85 }), true);
+      // Wellenkamm mit Schaumkrone, in kurzen Stücken entlang der (evtl. gebogenen) Strecke
+      const seg = 2;
+      const n = Math.ceil(w.length / seg);
+      const pieces: THREE.Mesh[] = [];
+      const rnd = mulberry32(i + 17);
+      const light = new THREE.Color(waterColor).lerp(new THREE.Color(0xffffff), 0.25).getHex();
+      for (let k = 0; k < n; k++) {
+        const parts: THREE.BufferGeometry[] = [
+          // Wasserwalze (liegt quer zur Bahn, rollt nach links)
+          part(G.cyl(0.85, 0.85, seg + 0.1, 10), light, { rot: [Math.PI / 2, 0, 0], pos: [0, 0.25, 0], scale: [1.5, 1, 1] }),
+          // flacher Ausläufer dahinter (Richtung Meer)
+          part(G.box(2.6, 0.18, seg + 0.1), waterColor, { pos: [-1.9, 0.12, 0] }),
+          // Schaumkrone vorne oben
+          part(G.ball(0.42 + rnd() * 0.2, 0), 0xffffff, { pos: [0.75, 0.95, -0.5] }),
+          part(G.ball(0.38 + rnd() * 0.2, 0), 0xf0f8ff, { pos: [0.95, 0.75, 0.5] }),
+          part(G.ball(0.3, 0), 0xffffff, { pos: [1.25, 0.35, 0] }),
+        ];
+        const m = mesh(parts, false);
+        m.visible = false;
+        this.group.add(m);
+        pieces.push(m);
+      }
+      this.anims.push({
+        update: (time, raceTime) => {
+          const st = this.el.wave(i, raceTime);
+          pieces.forEach((m, k) => {
+            m.visible = st.front !== null;
+            if (st.front === null) return;
+            this.place(m, s0 + (k + 0.5) * seg, st.front);
+            // Beim Heranrollen klein, über die Bahn gross; leichtes Wogen
+            const h = (st.active ? 1 : 0.6) + Math.sin(time * 5 + k) * 0.08;
+            m.scale.set(1, h, 1);
+          });
         },
       });
     });

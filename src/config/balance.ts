@@ -254,5 +254,10 @@ export const ELEMENTS = {
   /** Windradflügel: fegt knapp über den Boden – man kann darüber springen */
   spinner: { height: 0.7, width: 0.45, immunity: 1.4 },
   avalanche: { warn: 2.0, sweep: 2.6, band: 2.2, stun: 1.5 },
+  /** Lianen: ab dieser Sprunghöhe hineinspringen → Schwung nach oben und Schub (für alle Tiere gleich) */
+  liane: { minAlt: 0.4, launch: 8.6, boost: 1.25, duration: 1.2, top: 3.8, bottom: 1.2 },
+  /** Wellen: Vorwarnung (Welle rollt heran), Dauer quer über die Bahn, Breite der Wellenfront,
+   *  seitliches Wegschieben (m), Tempo danach, Schutz vor erneutem Treffer, Höhe zum Überspringen */
+  wave: { warn: 1.6, sweep: 2.2, band: 1.2, push: 2.4, speedKeep: 0.72, immunity: 1.2, jumpAlt: 0.45 },
   shortcut: { width: 5 },
 };

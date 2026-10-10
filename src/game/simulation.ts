@@ -409,6 +409,7 @@ export class RaceSim {
     a.energy = Math.max(0, a.energy - drain * dt);
 
     this.crossElements(a, prevS, passThrough);
+    this.hitWaves(a, st);
     if (!passThrough && a.shortcut < 0) this.hitObstacles(a, st, prevS);
     this.collectBolts(a);
     this.collectIcons(a);
@@ -513,6 +514,14 @@ export class RaceSim {
         this.events.push({ type: 'hoop', animal: a.id });
       }
     }
+    // Lianen: hineinspringen und weiterschwingen
+    for (const li of el.data.lianas ?? []) {
+      if (a.alt < ELEMENTS.liane.minAlt || a.swimming || Math.abs(a.d - li.d) > li.width / 2 || !crossed(li.s * L)) continue;
+      a.vy = Math.max(a.vy, ELEMENTS.liane.launch);
+      a.grounded = false;
+      this.giveBoost(a, ELEMENTS.liane.boost, ELEMENTS.liane.duration);
+      this.events.push({ type: 'liane', animal: a.id });
+    }
     const ramps = el.data.ramps ?? [];
     for (let i = 0; i < ramps.length; i++) {
       const r = ramps[i];
@@ -537,6 +546,28 @@ export class RaceSim {
       a.speed = 0;
       if (!passThrough) a.stumble = ELEMENTS.gate.stumble;
       this.events.push({ type: 'bump', animal: a.id });
+    }
+  }
+
+  /** Wellen: die Wellenfront schiebt Tiere am Boden zur Seite (drüberspringen geht) */
+  private hitWaves(a: AnimalState, st: DerivedStats) {
+    const waves = this.el.data.waves ?? [];
+    if (!waves.length || a.shortcut >= 0 || a.invuln > 0 || a.hitImmune > 0) return;
+    const W = ELEMENTS.wave;
+    const t = this.track;
+    for (let i = 0; i < waves.length; i++) {
+      const wv = this.el.wave(i, this.time);
+      if (!wv.active || wv.front === null || a.alt >= W.jumpAlt) continue;
+      const w = waves[i];
+      const rel = t.delta(w.s * t.length - w.length / 2, a.s);
+      if (rel < 0 || rel > w.length || Math.abs(a.d - wv.front) > W.band + st.radius) continue;
+      // nach links (weg vom Meer) schieben
+      a.x += t.tz[a.idx] * W.push;
+      a.z += -t.tx[a.idx] * W.push;
+      a.d += W.push;
+      a.speed *= W.speedKeep;
+      a.hitImmune = W.immunity;
+      this.events.push({ type: 'welle', animal: a.id });
     }
   }
 

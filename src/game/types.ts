@@ -45,6 +45,8 @@ export type SimEventType =
   | 'quake'
   | 'leapHit'
   | 'hoop'
+  | 'liane'
+  | 'welle'
   | 'ramp'
   | 'splash'
   | 'bump'

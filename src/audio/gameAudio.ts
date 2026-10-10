@@ -13,6 +13,7 @@ import { sfx, step, voice } from './sfx';
 export class GameAudio {
   private lastStride: number[] = [];
   private avalancheWarned = new Set<number>();
+  private waveWarned = new Set<number>();
 
   constructor(
     private readonly sim: RaceSim,
@@ -91,6 +92,12 @@ export class GameAudio {
       case 'hoop':
         if (mine) sfx.hoop();
         break;
+      case 'liane':
+        sfx.liane(mine ? 1 : w.vol * 0.6, w.pan);
+        break;
+      case 'welle':
+        sfx.wave(mine ? 1 : w.vol * 0.6, w.pan);
+        break;
       case 'ramp':
         sfx.ramp(mine ? 1 : w.vol * 0.6, w.pan);
         break;
@@ -147,6 +154,17 @@ export class GameAudio {
       step(species, a.swimming ? 'tiefwasser' : a.surface, vol, w.pan);
       if (species === 'pferd' && !a.swimming) setTimeout(() => step(species, a.surface, vol * 0.7, w.pan), 70);
     });
+    // Welle: Rauschen, wenn sie heranrollt und das eigene Tier in der Nähe ist
+    const waves = sim.el.data.waves ?? [];
+    for (let i = 0; i < waves.length; i++) {
+      const wv = sim.el.wave(i, sim.time);
+      const cycle = i * 100000 + Math.floor((sim.time + (waves[i].phase ?? 0)) / waves[i].period);
+      if (wv.front !== null && !wv.active && !this.waveWarned.has(cycle) && this.me >= 0) {
+        this.waveWarned.add(cycle);
+        const ahead = sim.track.delta(sim.animals[this.me].s, waves[i].s * sim.track.length);
+        if (Math.abs(ahead) < 60) sfx.waveRush(1 - Math.abs(ahead) / 60);
+      }
+    }
     // Lawine: einmal pro Abgang grollen, wenn das eigene Tier in der Nähe ist
     const avs = sim.el.data.avalanches ?? [];
     for (let i = 0; i < avs.length; i++) {

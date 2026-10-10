@@ -371,3 +371,8 @@ Hier stehen Entscheide, die während der Entwicklung getroffen wurden (mit Begr�
 51. **Leistung:** Die Auflösung passt sich im Rennen automatisch an (sinkt bis 60 %, wenn es unter 45 fps fällt, steigt wieder bei über 57 fps). Auf «mittel» werfen nur das eigene Tier und die Hindernisse echte Schatten. Das ganze Spiel ist ca. 0,9 MB gross (komprimiert 0,25 MB).
 52. **Letzte Balance-Runde:** Furiels Schub nach der Sprung-Attacke hält 2,5 s (statt 1,5 s), Rays Äpfel treffen etwas breiter. Alle Tiere liegen im Schnitt innerhalb von 1,3 Plätzen (`npm run sim -- 20`, alle Strecken, Stufe «Mittel»).
 53. **Veröffentlichung:** GitHub Pages mit automatischer Veröffentlichung bei jedem Push (`.github/workflows/deploy.yml`) oder Netlify (`netlify.toml`). Pfade sind relativ (`base: './'`), damit das Spiel auch in einem Unterordner läuft.
+
+### Nach der Veröffentlichung
+
+54. **Lianen (Dschungel):** Vor den drei Matschfeldern hängen Lianen an einem Ast quer über der Bahn. Wer hineinspringt (ab 0,4 m Höhe), schwingt mit Schub (×1,25 für 1,2 s) hoch über den Matsch. Für alle Tiere gleich; die Computergegner nutzen sie ab Stufe «Mittel».
+55. **Wellen (Sandstrand):** An zwei Stellen rollen in Abständen (6,5 s bzw. 7 s) Wellen vom Meer (rechts) quer über die Bahn. Man sieht und hört sie heranrollen. Wer am Boden getroffen wird, wird 2,4 m zur Seite gespült und gebremst (72 % Tempo), aber nicht gestoppt. Drüberspringen schützt.
