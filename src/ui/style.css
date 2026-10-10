@@ -1096,3 +1096,188 @@ td.plus {
     display: none;
   }
 }
+
+/* Mehrspieler */
+.btn.mp {
+  background: #7fd0ff;
+}
+.mp-panel {
+  width: min(560px, 100%);
+}
+.mp-label {
+  font-weight: 800;
+  display: block;
+  margin-bottom: 4px;
+}
+.mp-input {
+  font-family: inherit;
+  font-size: 22px;
+  font-weight: 800;
+  padding: 8px 12px;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  width: 100%;
+  background: #fff;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.mp-input.code {
+  text-transform: uppercase;
+  letter-spacing: 8px;
+  text-align: center;
+  font-size: 30px;
+}
+.mp-cols {
+  display: flex;
+  gap: 16px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+.mp-col {
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mp-col .btn {
+  min-width: 0;
+}
+.mp-status {
+  min-height: 1.4em;
+  font-weight: 800;
+  color: #c62f22;
+  margin: 10px 0 0;
+}
+.mp-status.ok {
+  color: var(--green-dark);
+}
+.code-box {
+  background: var(--panel);
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  padding: 6px 18px;
+  text-align: center;
+  font-weight: 800;
+  font-size: 18px;
+}
+.code-box b {
+  font-size: 40px;
+  letter-spacing: 8px;
+  color: var(--orange-dark);
+}
+.code-box small {
+  display: block;
+  font-size: 13px;
+  opacity: 0.7;
+}
+.lobby-row {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  width: min(900px, 100%);
+}
+.lobby-players {
+  flex: 1 1 340px;
+}
+.lobby-settings {
+  flex: 1 1 300px;
+}
+.lobby-settings .opt {
+  font-size: 15px;
+  padding: 5px 0;
+}
+.lobby-settings select {
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 16px;
+  padding: 6px 8px;
+  border: 3px solid var(--ink);
+  border-radius: 12px;
+  background: var(--cream);
+  max-width: 190px;
+}
+.lobby-settings .seg button {
+  font-size: 14px;
+  padding: 6px 10px;
+  min-height: 38px;
+}
+.lobby-status {
+  color: #fff;
+  font-weight: 800;
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.7);
+  margin: 0;
+  text-align: center;
+}
+td.ok {
+  color: var(--green-dark);
+  font-weight: 800;
+}
+td.wait {
+  opacity: 0.6;
+}
+.netinfo {
+  position: absolute;
+  bottom: calc(6px + var(--safe-b));
+  right: calc(8px + var(--safe-r));
+  font: 12px monospace;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+@media (max-height: 500px) {
+  .code-box b {
+    font-size: 28px;
+  }
+  .lobby-row .panel {
+    padding: 8px 12px;
+  }
+  .lobby-row table {
+    font-size: 13px;
+  }
+  .mp-input.code {
+    font-size: 24px;
+  }
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Hinweise (z. B. «Lea ist beigetreten») */
+#notice {
+  position: fixed;
+  left: 50%;
+  bottom: calc(18px + var(--safe-b));
+  transform: translateX(-50%);
+  background: rgba(43, 26, 14, 0.85);
+  color: #fff;
+  font-weight: 800;
+  padding: 8px 16px;
+  border-radius: 14px;
+  max-width: 90vw;
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+#notice.show {
+  animation: notice 4.5s ease-out forwards;
+}
+@keyframes notice {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  8%,
+  85% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+  }
+}

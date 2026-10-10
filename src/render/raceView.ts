@@ -4,6 +4,7 @@
  */
 import * as THREE from 'three';
 import { VIEW } from '../config/balance';
+import { NET } from '../config/net';
 import { getAnimal } from '../animals/animals';
 import { AnimalModel } from '../animals/models';
 import type { RaceSim } from '../game/simulation';
@@ -69,6 +70,8 @@ export class RaceView {
   private dustNext = 0;
   private readonly tmp = new THREE.Vector3();
   readonly effects: EffectsView;
+  /** Mehrspieler: Darstellungs-Versatz je Tier (wird sanft abgebaut) */
+  offsets: { x: number; z: number }[] | null = null;
   /** Interpolierte Positionen des aktuellen Frames */
   private readonly pos: AnimalPos[] = [];
 
@@ -125,10 +128,16 @@ export class RaceView {
   update(alpha: number, dt: number, time: number) {
     const sim = this.sim;
     const t = sim.track;
+    const decay = Math.exp(-NET.smoothing * dt);
     for (const a of sim.animals) {
       const m = this.models[a.id];
-      const x = a.prevX + (a.x - a.prevX) * alpha;
-      const z = a.prevZ + (a.z - a.prevZ) * alpha;
+      const off = this.offsets?.[a.id];
+      if (off) {
+        off.x *= decay;
+        off.z *= decay;
+      }
+      const x = a.prevX + (a.x - a.prevX) * alpha + (off?.x ?? 0);
+      const z = a.prevZ + (a.z - a.prevZ) * alpha + (off?.z ?? 0);
       const alt = a.prevAlt + (a.alt - a.prevAlt) * alpha;
       const heading = a.prevHeading + wrapAngle(a.heading - a.prevHeading) * alpha;
       // Schwimmen: Tier sinkt ein; auf Brücken steht es auf den Brettern

@@ -11,6 +11,8 @@ export interface Settings {
   controlHints: boolean;
   lastAnimal: string;
   lastTrack: string;
+  /** Name im Mehrspieler */
+  playerName: string;
 }
 
 export interface SaveData {
@@ -29,7 +31,7 @@ function defaultQuality(): Quality {
 
 function defaults(): SaveData {
   return {
-    settings: { quality: defaultQuality(), autoRun: true, controlHints: true, lastAnimal: 'lenni', lastTrack: 'bauernhof' },
+    settings: { quality: defaultQuality(), autoRun: true, controlHints: true, lastAnimal: 'lenni', lastTrack: 'bauernhof', playerName: '' },
     bestTimes: {},
     bestLaps: {},
     cupBest: {},

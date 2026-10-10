@@ -2,7 +2,7 @@
 
 Ein Tier-Rennspiel im Browser: Pferde, Katzen, ein Husky und ein Hamster laufen auf Parcours mit Hindernissen um die Wette. Läuft am PC und am Handy, ohne Installation, ohne Werbung, ohne Anmeldung.
 
-> **Stand:** Phase 3 von 5 – 8 Strecken, 2 Cups mit Siegerehrung, alle 10 Tiere mit Superkräften, Items, 7 Computergegner. Details in `CLAUDE.md`.
+> **Stand:** Phase 4 von 5 – Mehrspieler bis 3 Personen, 8 Strecken, 2 Cups mit Siegerehrung, alle 10 Tiere mit Superkräften, Items, 7 Computergegner. Details in `CLAUDE.md`.
 
 ## Steuerung
 
@@ -80,9 +80,18 @@ Für ein Update: `npm run build` und den neuen `dist`-Ordner wieder hineinziehen
 
 (In Phase 5 wird dafür noch eine automatische Veröffentlichung eingerichtet.)
 
-### Hinweis zum Mehrspieler (ab Phase 4)
+### Mehrspieler (bis 3 Personen)
 
-Mehrspieler verbindet die Geräte direkt miteinander (WebRTC). Im Heim-WLAN klappt das zuverlässig. Manche Mobilfunknetze blockieren direkte Verbindungen; dafür lässt sich später ein sogenannter TURN-Server ergänzen.
+1. Eine Person wählt **Mehrspieler → Rennen erstellen** und erhält einen **4-stelligen Raumcode**.
+2. Die anderen wählen **Mehrspieler**, geben den Code ein und tippen **Beitreten**.
+3. In der Lobby wählt jede Person ihr Tier (jedes Tier nur einmal) und tippt **Ich bin bereit**. Der Gastgeber wählt Einzelrennen oder Cup, Strecke und Stärke der Computergegner und startet mit **Los geht’s!**
+
+Gut zu wissen:
+- Die Geräte verbinden sich direkt (WebRTC). Ein öffentlicher Vermittlungsserver (PeerJS) hilft nur beim Verbinden – dafür braucht es Internet.
+- **Im Heim-WLAN klappt es zuverlässig.** Manche Mobilfunknetze blockieren direkte Verbindungen; dafür kann später ein sogenannter TURN-Server ergänzt werden (`src/config/net.ts`).
+- Das Fenster des Gastgebers muss sichtbar bleiben, sonst steht das Rennen für alle still.
+- Bricht eine Verbindung ab, übernimmt ein Computer. Mit demselben Code (im selben Browser-Tab) kann man wieder einsteigen.
+- **Zum Ausprobieren an einem PC:** zwei Browserfenster nebeneinander öffnen, in einem das Rennen erstellen, im anderen beitreten.
 
 ---
 

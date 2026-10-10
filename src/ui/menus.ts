@@ -7,7 +7,7 @@ import { CUPS, TRACKS } from '../tracks';
 import { load } from '../storage';
 import { formatTime } from './hud';
 
-export type ScreenName = 'title' | 'main' | 'animal' | 'track' | 'options' | 'controls' | 'loading' | 'pause' | 'results' | 'ceremony' | 'help' | 'none';
+export type ScreenName = 'title' | 'main' | 'animal' | 'track' | 'options' | 'controls' | 'loading' | 'pause' | 'results' | 'ceremony' | 'help' | 'mp' | 'lobby' | 'none';
 
 const $ = <E extends HTMLElement>(id: string) => document.getElementById(id) as E;
 
@@ -21,7 +21,7 @@ export function applyTexts() {
   });
 }
 
-const SCREENS: ScreenName[] = ['title', 'main', 'animal', 'track', 'options', 'controls', 'loading', 'pause', 'results', 'ceremony', 'help'];
+const SCREENS: ScreenName[] = ['title', 'main', 'animal', 'track', 'options', 'controls', 'loading', 'pause', 'results', 'ceremony', 'help', 'mp', 'lobby'];
 
 export function showScreen(name: ScreenName) {
   for (const s of SCREENS) $(`scr-${s}`).classList.toggle('hidden', s !== name);
@@ -219,7 +219,7 @@ export function buildResults(rows: ResultRow[], names: string[], me: number, new
     rows
       .map(
         (r) =>
-          `<tr class="${r.animal === me ? 'me' : ''}"><td>${r.place}.</td><td>${names[r.animal]} <small>(${r.animal === me ? T.results.you : T.results.computer})</small></td><td class="mono">${r.estimated ? '≈ ' : ''}${formatTime(r.time)}</td><td class="mono">${formatTime(r.bestLap)}</td></tr>`,
+          `<tr class="${r.animal === me ? 'me' : ''}"><td>${r.place}.</td><td>${names[r.animal]} <small>(${r.animal === me ? T.results.you : r.human ? T.results.player : T.results.computer})</small></td><td class="mono">${r.estimated ? '≈ ' : ''}${formatTime(r.time)}</td><td class="mono">${formatTime(r.bestLap)}</td></tr>`,
       )
       .join('');
 }

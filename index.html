@@ -25,6 +25,7 @@
         <div class="menu-col">
           <button class="btn big" id="btn-single" data-t="menu.single"></button>
           <button class="btn big cup" id="btn-cup" data-t="menu.cup"></button>
+          <button class="btn big mp" data-go="mp" data-t="menu.mp"></button>
           <button class="btn" data-go="options" data-t="menu.options"></button>
           <button class="btn" data-go="help" data-t="menu.help"></button>
           <button class="btn" data-go="controls" data-t="menu.controls"></button>
@@ -81,6 +82,43 @@
         <button class="btn" data-go="main" data-t="menu.back"></button>
       </section>
 
+      <!-- Mehrspieler: erstellen oder beitreten -->
+      <section id="scr-mp" class="screen hidden">
+        <h2 data-t="mp.title"></h2>
+        <div class="panel mp-panel">
+          <label class="mp-label" for="mp-name" data-t="mp.yourName"></label>
+          <input id="mp-name" class="mp-input" maxlength="14" autocomplete="off" />
+          <div class="mp-cols">
+            <div class="mp-col">
+              <button class="btn primary" id="btn-mp-create" data-t="mp.create"></button>
+              <p class="note" data-t="mp.createHint"></p>
+            </div>
+            <div class="mp-col">
+              <input id="mp-code" class="mp-input code" maxlength="4" autocomplete="off" autocapitalize="characters" />
+              <button class="btn" id="btn-mp-join" data-t="mp.join"></button>
+            </div>
+          </div>
+          <p id="mp-status" class="mp-status"></p>
+          <p class="note" data-t="mp.mobileHint"></p>
+        </div>
+        <button class="btn" data-go="main" data-t="menu.back"></button>
+      </section>
+
+      <!-- Lobby -->
+      <section id="scr-lobby" class="screen hidden">
+        <div class="code-box"><span data-t="mp.code"></span> <b id="lobby-code"></b><small data-t="mp.shareHint"></small></div>
+        <div class="lobby-row">
+          <div class="panel lobby-players"><h3 data-t="mp.players"></h3><table id="lobby-players"></table><p class="note" data-t="mp.fill"></p></div>
+          <div class="panel lobby-settings" id="lobby-settings"></div>
+        </div>
+        <div class="row">
+          <button class="btn" id="btn-lobby-leave" data-t="mp.leave"></button>
+          <button class="btn" id="btn-lobby-animal" data-t="mp.pickAnimal"></button>
+          <button class="btn primary" id="btn-lobby-ready"></button>
+        </div>
+        <p id="lobby-status" class="lobby-status"></p>
+      </section>
+
       <!-- Hilfe -->
       <section id="scr-help" class="screen hidden">
         <h2 data-t="help.title"></h2>
@@ -113,6 +151,7 @@
           <span class="bolt-ico">⚡</span>
           <div class="bar"><div id="hud-energy-fill"></div></div>
         </div>
+        <div id="netinfo" class="netinfo hidden"></div>
         <div id="hud-power" class="hud-power">
           <span id="hud-power-ico" class="ico">🥕</span>
           <span id="hud-power-slots" class="slots"><i></i><i></i><i></i></span>
@@ -154,6 +193,7 @@
       <section id="scr-results" class="screen dim hidden">
         <h2 id="results-title" data-t="results.title"></h2>
         <div id="record" class="record hidden" data-t="results.newRecord"></div>
+        <p id="results-wait" class="lobby-status hidden" data-t="mp.waitHost"></p>
         <div class="results-row">
           <div class="panel"><table id="results-table"></table></div>
           <div id="cup-box" class="panel hidden"><h3 data-t="cup.standings"></h3><table id="cup-table"></table></div>
@@ -173,6 +213,7 @@
         <button class="btn primary" id="btn-ceremony-menu" data-t="results.menu"></button>
       </section>
 
+      <div id="notice"></div>
       <div id="rotate"><div>📱↻</div><p data-t="rotate"></p></div>
       <div id="fps" class="hidden"></div>
     </div>

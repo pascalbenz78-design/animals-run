@@ -12,6 +12,7 @@ npm run sim          # Kopfloser Renn-Test: Renndauer, Energie, Balance (z. B. n
 npx tsx scripts/trackinfo.ts             # Prüfung aller Strecken (engste Kurve, Abstand der Teile)
 npx tsx scripts/trackinfo.ts alpen       # Karte und Kurvenprofil einer Strecke (zum Platzieren von Objekten)
 npx tsx scripts/elemstats.ts             # Statistik je Strecke: Rundenzeit, Stürze, Abkürzungen …
+npx tsx scripts/nettest.ts 60            # Mehrspieler-Abgleich ohne Netzwerk (Verzögerung in ms je Richtung)
 npx tsx scripts/diag.ts                  # Details eines Rennens pro Tier
 ```
 
@@ -41,7 +42,7 @@ src/render     renderer.ts, trackView.ts, trackElements.ts, decor.ts, landmarks.
                raceView.ts, ceremony.ts, geo.ts, textures.ts
 src/input      input.ts (Tastatur, Touch, Gamepad)
 src/ui         hud.ts, menus.ts, style.css
-src/net        (Phase 4) Mehrspieler über PeerJS
+src/net        Mehrspieler: peer.ts (PeerJS), mp.ts (Lobby/Ablauf), raceSync.ts (Vorhersage/Abgleich), sync.ts, protocol.ts
 src/audio      (Phase 5) Musik und Töne
 scripts        simrace.ts, diag.ts, trackinfo.ts
 ```
@@ -66,8 +67,14 @@ scripts        simrace.ts, diag.ts, trackinfo.ts
   - Alle 8 Strecken mit eigener Stimmung, Wetter und je einer Abkürzung; Baukasten in `src/game/elements.ts`
   - Cup-Modus (Pfoten-/Hufeisen-Cup) mit Punkten, Zwischenwertung und Siegerehrung (`src/render/ceremony.ts`)
   - Menüs: Einzelrennen, Cup, Optionen, Steuerung; Bestzeiten und bestes Cup-Ergebnis gespeichert
-- [ ] **Phase 4** – Mehrspieler (PeerJS, Raumcode, Lobby, Host-Simulation, Vorhersage)
+- [x] **Phase 4 – Mehrspieler** (abgeschlossen, wartet auf Abnahme)
+  - Vorab: Hilfe & Tipps (Regeln, Tiere, Strecken-FAQ), Springen während Superkräften, Rampen-Darstellung
+  - Raumcode, Lobby (Name, Tierwahl, Bereit, Ping, Einstellungen des Gastgebers), bis 3 Personen + Computer
+  - Gastgeber rechnet, 20 Schnappschüsse/s, Client-Vorhersage mit Korrektur, Einzelrennen und Cup
+  - Abbruch: Computer übernimmt, Wiedereinstieg mit Code; Gastgeber weg → Meldung für alle
+  - Getestet: `scripts/nettest.ts` und zwei Browser-Tabs auf einem PC (Lobby, Rennen, Cup, Abbruch, Wiedereinstieg)
 - [ ] **Phase 5** – Ton/Musik, Leistungsoptimierung Handy, Veröffentlichung (GitHub Pages)
 
-Noch nicht vorhanden (bewusst): Musik/Töne (auch für Superkräfte; Lautstärke-Optionen erst mit Ton), Mehrspieler, Hochformat-Steuerung (Hinweis «Bitte Gerät drehen» ist da).
+Noch nicht vorhanden (bewusst): Musik/Töne (auch für Superkräfte; Lautstärke-Optionen erst mit Ton), TURN-Server (nur vorbereitet), Hochformat-Steuerung (Hinweis «Bitte Gerät drehen» ist da).
+Mehrspieler: Das Fenster des Gastgebers muss sichtbar bleiben (Browser drosseln Hintergrund-Tabs).
 Bekannt: Lianen im Dschungel sind nur Kulisse (kein Spielelement). Leistung auf älteren Handys noch nicht gemessen (Phase 5).

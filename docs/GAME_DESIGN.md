@@ -337,3 +337,20 @@ Hier stehen Entscheide, die während der Entwicklung getroffen wurden (mit Begr�
 29. **Titelbild:** Im Hintergrund läuft ein Demo-Rennen auf einer zufälligen Strecke.
 30. **Grafik ohne Bilddateien:** Alle Strecken, Wahrzeichen (Richterturm, Leuchtturm, Pyramiden, Chalet, Seilbahn, Tempel, Wasserfall, Vulkan …), Pflanzen und Tiere am Rand sind im Code erzeugt.
 31. **Speicherversion v3:** Bestzeiten der bisherigen Strecken wurden zurückgesetzt, weil die Strecken geändert wurden.
+
+### Nach Phase 3 (Wünsche)
+
+32. **Hilfe & Tipps** im Hauptmenü: Spielregeln (inkl. Abkürzungsarten), Stärken und Eigenheiten aller Tiere mit Tipp zur Superkraft, Besonderheiten jeder Strecke (FAQ) mit Abkürzung. Der Streckentipp erscheint auch auf dem Ladebildschirm, der Tiertipp in der Tierwahl.
+33. **Springen während Superkräften:** Bei der Mäusejagd zählt die eigene Sprungtaste immer; der Autopilot springt zusätzlich selbst über Spalten, Gräben und Stämme. Nicht springen kann man nur beim Schwimmen und beim Buddeln (Tira ist dann unter der Erde und unverwundbar).
+34. **Rampen:** Tiere laufen sichtbar die Schanze/Düne hinauf und springen von oben ab (vorher liefen sie grafisch durch die Rampe).
+35. **Steilwand-Tunnel** für alle Nicht-Pferde (Husky, Katzen, Hamster): Tira kam mit seinem Sprung nie über die Steilwand.
+
+### Phase 4
+
+36. **Verbindung:** WebRTC über PeerJS. Der öffentliche PeerJS-Server (0.peerjs.com) vermittelt nur den Verbindungsaufbau; die Spieldaten laufen direkt zwischen den Geräten. Die Peer-ID des Gastgebers ist `animalsrun-v1-` + Raumcode (4 Zeichen ohne verwechselbare Zeichen wie 0/O, 1/I). Ist ein Code schon vergeben, wird automatisch ein neuer gewählt. ICE-Server (STUN, später TURN) stehen in `src/config/net.ts`.
+37. **Gastgeber rechnet verbindlich** (Positionen, Kollisionen, Items, Superkräfte, Computergegner). Mitspieler senden nur ihre Eingaben (60-mal pro Sekunde, als Bitfeld). Der Gastgeber schickt 20-mal pro Sekunde einen Schnappschuss des ganzen Rennzustands samt Ereignissen.
+38. **Client-Vorhersage mit Korrektur:** Mitspieler rechnen das Rennen mit ihrer eigenen Eingabe sofort weiter. Bei jedem Schnappschuss wird der Zustand übernommen, die noch nicht bestätigten eigenen Eingaben werden nachgerechnet, kleine Abweichungen in der Darstellung sanft ausgeglichen. Test `npx tsx scripts/nettest.ts 60`: gleiches Ergebnis auf beiden Geräten, Korrekturen im Schnitt wenige Millimeter; auch bei 250 ms Verzögerung je Richtung gleiches Ergebnis.
+39. **Mitspieler rechnen höchstens 0,75 s voraus.** Stockt der Gastgeber (z. B. Fenster im Hintergrund), warten sie, statt davonzulaufen. Darum muss das Fenster des Gastgebers sichtbar bleiben (Hinweis in der Lobby).
+40. **Pause im Mehrspieler** hält das Rennen nicht an (es zeigt nur das Menü); «Neustart» gibt es dort nicht.
+41. **Verbindungsabbruch:** Ein Computer übernimmt das Tier des Mitspielers. Wer im selben Browser-Tab mit demselben Code wieder beitritt, übernimmt sein Tier wieder (erkannt über ein Kennzeichen im Tab). Neue Mitspieler können während eines laufenden Rennens nicht beitreten. Verliert der Gastgeber die Verbindung, kommen alle mit einer Meldung ins Menü.
+42. **Cup im Mehrspieler:** Der Gastgeber führt den Cup (Punkte, nächstes Rennen, Siegerehrung) und schickt die Wertung an alle. Nach dem Rennen kann der Gastgeber alle in die Lobby zurückholen.

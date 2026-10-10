@@ -77,10 +77,11 @@ export class RaceSim {
   tick = 0;
   /** Zufall der Simulation (Items). Deterministisch bei gleichem Startwert. */
   readonly rng: () => number;
-  private hazardId = 0;
+  /** Nächste ID für Äpfel und Fallen (für Mehrspieler übertragbar) */
+  hazardId = 0;
   /** Bester Platz eines Menschen (für die Aufholhilfe der Computergegner) */
   private bestHumanPlace = 0;
-  private doneTimer = -1;
+  doneTimer = -1;
   private readonly cpSpacing: number;
   /** Höchste Runde im Feld (für Ereignisse wie Lawinen ab Runde 3) */
   leaderLap = 1;

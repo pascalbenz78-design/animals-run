@@ -11,6 +11,7 @@
     "sim": "tsx scripts/simrace.ts"
   },
   "dependencies": {
+    "peerjs": "^1.5.5",
     "three": "^0.186.1"
   },
   "devDependencies": {
