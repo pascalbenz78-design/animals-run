@@ -43,6 +43,13 @@ Du brauchst einmalig **Node.js** (Version 20 oder neuer): https://nodejs.org →
 
 ---
 
+## Als App auf den Startbildschirm legen
+
+Spieladresse: https://pascalbenz78-design.github.io/animals-run/
+
+- **Android (Chrome):** Seite öffnen → Menü ⋮ → «Zum Startbildschirm hinzufügen» bzw. «App installieren». Danach startet das Spiel mit dem Pfoten-Symbol im Vollbild und im Querformat.
+- **iPhone/iPad (Safari):** Seite öffnen → Teilen-Symbol → «Zum Home-Bildschirm». Das Spiel öffnet dann ohne Browserleiste.
+
 ## Veröffentlichen (damit es über eine Internetadresse spielbar ist)
 
 Das Spiel ist eine reine statische Website. Zuerst wird sie «gebaut»:
