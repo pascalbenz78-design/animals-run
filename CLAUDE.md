@@ -13,6 +13,8 @@ npx tsx scripts/trackinfo.ts             # Prüfung aller Strecken (engste Kurve
 npx tsx scripts/trackinfo.ts alpen       # Karte und Kurvenprofil einer Strecke (zum Platzieren von Objekten)
 npx tsx scripts/elemstats.ts             # Statistik je Strecke: Rundenzeit, Stürze, Abkürzungen …
 npx tsx scripts/nettest.ts 60            # Mehrspieler-Abgleich ohne Netzwerk (Verzögerung in ms je Richtung)
+npx tsx scripts/stuns.ts 5               # Wie oft wird ein Tier «ausgebremst» (und wodurch)?
+npx tsx scripts/jumpwindow.ts            # Zeitfenster für fehlerfreie Sprünge je Tierart
 npx tsx scripts/diag.ts                  # Details eines Rennens pro Tier
 ```
 
@@ -43,7 +45,7 @@ src/render     renderer.ts, trackView.ts, trackElements.ts, decor.ts, landmarks.
 src/input      input.ts (Tastatur, Touch, Gamepad)
 src/ui         hud.ts, menus.ts, style.css
 src/net        Mehrspieler: peer.ts (PeerJS), mp.ts (Lobby/Ablauf), raceSync.ts (Vorhersage/Abgleich), sync.ts, protocol.ts
-src/audio      (Phase 5) Musik und Töne
+src/audio      engine.ts (Web Audio), music.ts (Sequenzer), sfx.ts (Geräusche), gameAudio.ts (Ereignisse → Klänge)
 scripts        simrace.ts, diag.ts, trackinfo.ts
 ```
 
@@ -73,8 +75,12 @@ scripts        simrace.ts, diag.ts, trackinfo.ts
   - Gastgeber rechnet, 20 Schnappschüsse/s, Client-Vorhersage mit Korrektur, Einzelrennen und Cup
   - Abbruch: Computer übernimmt, Wiedereinstieg mit Code; Gastgeber weg → Meldung für alle
   - Getestet: `scripts/nettest.ts` und zwei Browser-Tabs auf einem PC (Lobby, Rennen, Cup, Abbruch, Wiedereinstieg)
-- [ ] **Phase 5** – Ton/Musik, Leistungsoptimierung Handy, Veröffentlichung (GitHub Pages)
+- [x] **Phase 5 – Ton, Feinschliff, Veröffentlichung** (abgeschlossen, wartet auf Abnahme)
+  - Vorab: Gonzi schafft die Sprünge (Sprungwerte, Sprunghilfe), Start per Klick, weniger «Ausgebremst»
+  - Musik je Strecke, Menü und Siegerehrung; Tierstimmen; Effekte inkl. eigener Klang je Superkraft; Lautstärke-Optionen
+  - Automatische Auflösung, weniger Schatten auf «mittel», letzte Balance-Runde
+  - GitHub Pages (Workflow) und Netlify (netlify.toml) vorbereitet
 
-Noch nicht vorhanden (bewusst): Musik/Töne (auch für Superkräfte; Lautstärke-Optionen erst mit Ton), TURN-Server (nur vorbereitet), Hochformat-Steuerung (Hinweis «Bitte Gerät drehen» ist da).
+Noch nicht vorhanden (bewusst): TURN-Server (nur vorbereitet), Hochformat-Steuerung (Hinweis «Bitte Gerät drehen» ist da).
 Mehrspieler: Das Fenster des Gastgebers muss sichtbar bleiben (Browser drosseln Hintergrund-Tabs).
 Bekannt: Lianen im Dschungel sind nur Kulisse (kein Spielelement). Leistung auf älteren Handys noch nicht gemessen (Phase 5).

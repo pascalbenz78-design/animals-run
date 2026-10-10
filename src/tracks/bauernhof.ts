@@ -65,7 +65,6 @@ export const BAUERNHOF: TrackData = {
   ],
   icons: [
     { s: 0.16, d: -2 },
-    { s: 0.47, d: 2.5 },
     { s: 0.9, d: -1.5 },
   ],
   items: [

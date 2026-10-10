@@ -67,7 +67,6 @@ export const REITTURNIER: TrackData = {
   ],
   icons: [
     { s: 0.1, d: 2 },
-    { s: 0.45, d: -2 },
     { s: 0.83, d: 0 },
   ],
   items: [

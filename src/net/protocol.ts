@@ -64,9 +64,11 @@ export type Msg =
   | { t: 'results'; cup: CupInfo | null }
   | { t: 'ceremony'; cup: CupInfo }
   | { t: 'toLobby' }
-  | { t: 'notice'; text: string };
+  | { t: 'notice'; text: string }
+  /** Mitspieler hat die Strecken-Info gelesen und ist bereit */
+  | { t: 'loaded' };
 
-export const PROTOCOL_VERSION = 1;
+export const PROTOCOL_VERSION = 2;
 
 /** Eingabe als Bitfeld (klein für die Übertragung) */
 export function packInput(i: Input): number {

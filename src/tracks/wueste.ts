@@ -69,7 +69,6 @@ export const WUESTE: TrackData = {
   ],
   icons: [
     { s: 0.11, d: -2 },
-    { s: 0.47, d: 0 },
     { s: 0.88, d: 2 },
   ],
   items: [

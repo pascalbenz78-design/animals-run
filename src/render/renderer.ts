@@ -115,9 +115,15 @@ export class GameRenderer {
     window.addEventListener('resize', () => this.resize());
   }
 
+  /** Automatische Auflösung (1 = volle Auflösung der Grafikstufe) */
+  private scale = 1;
+  private fpsTime = 0;
+  private fpsFrames = 0;
+
   setQuality(q: Quality) {
     this.quality = q;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, VIEW.pixelRatio[q]));
+    this.scale = 1;
+    this.applyPixelRatio();
     const size = VIEW.shadowMapSize[q];
     const on = size > 0;
     if (this.renderer.shadowMap.enabled !== on) {
@@ -172,6 +178,35 @@ export class GameRenderer {
     this.camera.aspect = w / h;
     // Im Hochformat etwas mehr Sichtfeld
     this.camera.updateProjectionMatrix();
+  }
+
+  private applyPixelRatio() {
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, VIEW.pixelRatio[this.quality]) * this.scale);
+  }
+
+  /**
+   * Bildrate beobachten: ruckelt es, wird die Auflösung schrittweise gesenkt (bis 60 %),
+   * läuft es wieder flüssig, wird sie erhöht. So bleibt das Spiel auch auf älteren Handys flüssig.
+   */
+  adapt(dt: number) {
+    const A = VIEW.autoScale;
+    this.fpsTime += dt;
+    this.fpsFrames++;
+    if (this.fpsTime < A.interval) return;
+    const fps = this.fpsFrames / this.fpsTime;
+    this.fpsTime = 0;
+    this.fpsFrames = 0;
+    const before = this.scale;
+    if (fps < A.lowFps) this.scale = Math.max(A.min, this.scale - A.step);
+    else if (fps > A.highFps) this.scale = Math.min(1, this.scale + A.step / 2);
+    if (this.scale !== before) {
+      this.applyPixelRatio();
+      this.resize();
+    }
+  }
+
+  get resolutionScale() {
+    return this.scale;
   }
 
   render(time: number) {

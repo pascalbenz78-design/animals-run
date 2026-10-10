@@ -19,6 +19,8 @@ export interface MpHooks {
   snapshot(msg: Extract<Msg, { t: 'snap' }>): void;
   /** Gastgeber: Eingabe eines Mitspielers */
   input(playerId: string, seq: number, bits: number): void;
+  /** Gastgeber: ein Mitspieler hat die Strecken-Info bestätigt */
+  loaded(): void;
   /** Gastgeber: Mitspieler verbunden/getrennt (während eines Rennens) */
   connection(playerId: string, connected: boolean, oldId?: string): void;
   /** Mitspieler: Rennergebnis (Cup-Wertung) vom Gastgeber */
@@ -56,6 +58,8 @@ export class Multiplayer {
   private pingTimer = 0;
   /** Gastgeber: Kennzeichen je Spieler (für den Wiedereinstieg) */
   private readonly tokens = new Map<string, string>();
+  /** Gastgeber: Mitspieler, die die Strecken-Info bestätigt haben */
+  private readonly loadedSet = new Set<string>();
 
   constructor(private readonly hooks: MpHooks) {}
 
@@ -139,6 +143,10 @@ export class Multiplayer {
       case 'input':
         this.hooks.input(from, msg.seq, msg.b);
         return;
+      case 'loaded':
+        this.loadedSet.add(from);
+        this.hooks.loaded();
+        return;
     }
   }
 
@@ -186,7 +194,18 @@ export class Multiplayer {
   sendStart(setup: RaceSetup) {
     this.setup = setup;
     this.lobby.racing = true;
+    this.loadedSet.clear();
     this.host?.broadcast({ t: 'start', setup });
+  }
+
+  /** Haben alle verbundenen Mitspieler die Strecken-Info bestätigt? */
+  allLoaded(): boolean {
+    return this.lobby.players.filter((p) => !p.host && p.connected).every((p) => this.loadedSet.has(p.id));
+  }
+
+  /** Mitspieler: Strecken-Info gelesen */
+  sendLoaded() {
+    this.client?.send({ t: 'loaded' });
   }
 
   sendResults(cup: CupInfo | null) {

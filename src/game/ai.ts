@@ -368,11 +368,11 @@ export class AiDriver {
       case 'schutzpflaster':
         return a.energy < 45 || others.some((o) => o.active === 'erdbeben' || o.active === 'miauSchrei') || held > 10;
       case 'wirbelsturm':
-        return near(POWERS.wirbelsturm.radius - 1) >= (tactical ? 2 : 1) || held > 14;
+        return near(POWERS.wirbelsturm.radius - 1) >= 2 || (held > 16 && near(POWERS.wirbelsturm.radius) >= 1);
       case 'maeusejagd':
         return held > 1;
       case 'erdbeben':
-        return near(POWERS.erdbeben.radius - 4, true) >= (tactical ? 3 : 2) || (held > 12 && near(POWERS.erdbeben.radius, true) >= 1);
+        return near(POWERS.erdbeben.radius - 4, true) >= (tactical ? 4 : 3) || (held > 20 && near(POWERS.erdbeben.radius, true) >= 2);
       case 'miauSchrei': {
         const W = POWERS.miauSchrei;
         const inCone = others.filter((o) => {
@@ -381,7 +381,7 @@ export class AiDriver {
           const dist = Math.hypot(dx, dz);
           return dist < W.range - 4 && Math.abs(wrapAngle(Math.atan2(dz, dx) - a.heading)) < W.halfAngle * 0.8 && o.invuln <= 0;
         }).length;
-        return inCone >= (tactical ? 2 : 1) || (held > 10 && inCone >= 1) || held > 20;
+        return inCone >= 2 || (held > 12 && inCone >= 1);
       }
       case 'spuernase':
       case 'hamsterkugel': {

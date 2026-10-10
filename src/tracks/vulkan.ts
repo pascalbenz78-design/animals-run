@@ -72,7 +72,6 @@ export const VULKAN: TrackData = {
   ],
   icons: [
     { s: 0.3, d: 2 },
-    { s: 0.55, d: 0 },
     { s: 0.9, d: -2 },
   ],
   items: [

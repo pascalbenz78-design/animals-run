@@ -70,7 +70,9 @@
           <div class="opt"><span data-t="options.quality"></span><div id="opt-quality" class="seg"></div></div>
           <div class="opt"><span data-t="options.autoRun"></span><div id="opt-autorun" class="seg"></div></div>
           <div class="opt"><span data-t="options.controlHints"></span><div id="opt-hints" class="seg"></div></div>
-          <p class="note" data-t="options.audioLater"></p>
+          <div class="opt"><span data-t="options.musicVol"></span><input type="range" id="opt-music" min="0" max="100" /></div>
+          <div class="opt"><span data-t="options.sfxVol"></span><input type="range" id="opt-sfx" min="0" max="100" /></div>
+          <div class="opt"><span data-t="options.mute"></span><div id="opt-mute" class="seg"></div></div>
         </div>
         <button class="btn" id="btn-options-back" data-t="menu.back"></button>
       </section>
@@ -133,7 +135,9 @@
           <div id="loading-name" class="loading-name"></div>
           <div id="loading-sub"></div>
           <p id="loading-tip" class="loading-tip"></p>
-          <p class="blink" data-t="loading"></p>
+          <p id="loading-busy" class="blink" data-t="loading"></p>
+          <button class="btn primary hidden" id="btn-loading-go" data-t="menu.start"></button>
+          <p id="loading-wait" class="note hidden" data-t="loadingWait"></p>
         </div>
       </section>
 

@@ -68,7 +68,6 @@ export const DSCHUNGEL: TrackData = {
   ],
   icons: [
     { s: 0.2, d: 2 },
-    { s: 0.5, d: -2 },
     { s: 0.8, d: 0 },
   ],
   items: [

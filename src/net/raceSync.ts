@@ -131,6 +131,8 @@ export class ClientRaceSync {
       this.reconcile(last.s, last.ack, drivers);
     }
     if (this.sim.phase === 'done') return out;
+    // Noch nichts vom Gastgeber gehört (er wartet z. B. auf andere Mitspieler): nicht losrechnen
+    if (!this.synced) return out;
     // Gastgeber hängt (z. B. Fenster im Hintergrund): nicht endlos vorausrechnen
     if (this.synced && this.history.length >= NET.maxAhead) return out;
     this.seq++;

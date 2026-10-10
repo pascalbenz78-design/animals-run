@@ -149,6 +149,8 @@ export const VIEW = {
   /** Maximale Pixel-Ratio je Grafikstufe. */
   pixelRatio: { hoch: 2, mittel: 1.5, niedrig: 1 },
   shadowMapSize: { hoch: 2048, mittel: 1024, niedrig: 0 },
+  /** Automatische Auflösung: unter dieser Bildrate wird die Auflösung gesenkt, darüber wieder erhöht */
+  autoScale: { lowFps: 45, highFps: 57, min: 0.6, step: 0.1, interval: 2 },
   /** Anteil der Dekoration (Bäume usw.) je Grafikstufe. */
   decorDensity: { hoch: 1, mittel: 0.7, niedrig: 0.4 },
 };
@@ -165,7 +167,7 @@ export const ICONS = {
    * Aufholhilfe: Anzahl zusätzlicher Icon-Punkte pro Runde, die ein Tier je nach Platz sieht
    * (Index = Platz 1–8). Platz 1 sieht nur die normalen Punkte.
    */
-  extraByPlace: [0, 0, 1, 2, 3, 4, 5, 7, 9],
+  extraByPlace: [0, 0, 0, 1, 2, 2, 3, 4, 6],
   /** Maximale Anzahl zusätzlicher Punkte (werden automatisch über die Runde verteilt). */
   extraMax: 9,
 };
@@ -173,8 +175,8 @@ export const ICONS = {
 /** Superkräfte: Dauer, Stärke, Reichweite. */
 export const POWERS = {
   turboGalopp: { duration: 4, boost: 1.6 },
-  sprungAttacke: { range: 25, leapTime: 0.6, stun: 2, selfBoost: 1.25, selfBoostTime: 1.5 },
-  apfelRegen: { duration: 3, count: 5, radius: 1.3, spin: 1.2, lifetime: 20, spread: [0, -2.6, 2.6, -1.3, 1.3] },
+  sprungAttacke: { range: 25, leapTime: 0.6, stun: 2, selfBoost: 1.3, selfBoostTime: 2.5 },
+  apfelRegen: { duration: 3, count: 5, radius: 1.55, spin: 1.2, lifetime: 20, spread: [0, -2.6, 2.6, -1.3, 1.3] },
   schutzpflaster: { duration: 5 },
   wirbelsturm: { duration: 3, radius: 8, stun: 1.5 },
   maeusejagd: { duration: 5, boost: 1.35 },
@@ -189,7 +191,7 @@ export const EFFECTS = {
   /** Tempo-Faktor während des Rutschens (Apfel) */
   spinSpeed: 0.3,
   /** Kurzer Schutz nach einem Treffer, damit man nicht sofort wieder getroffen wird */
-  hitImmunity: 1.0,
+  hitImmunity: 6.0,
 };
 
 /** Allgemeine Items aus den Item-Kisten (wirken sofort beim Einsammeln). */

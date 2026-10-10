@@ -64,7 +64,6 @@ export const SANDSTRAND: TrackData = {
   ],
   icons: [
     { s: 0.1, d: 2 },
-    { s: 0.5, d: -2 },
     { s: 0.88, d: 0 },
   ],
   items: [

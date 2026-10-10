@@ -13,6 +13,9 @@ import { RaceSim } from './game/simulation';
 import { Track } from './game/track';
 import type { AiLevel, Entrant, Input } from './game/types';
 import { InputManager, isTouchDevice } from './input/input';
+import { audio } from './audio/engine';
+import { GameAudio } from './audio/gameAudio';
+import { music } from './audio/music';
 import { Multiplayer } from './net/mp';
 import { normalizeCode } from './net/peer';
 import type { CupInfo, RaceSetup } from './net/protocol';
@@ -63,6 +66,7 @@ interface Session {
   demo: boolean;
   names: string[];
   net: NetRole | null;
+  sound: GameAudio | null;
 }
 
 const params = new URLSearchParams(location.search);
@@ -143,7 +147,19 @@ function buildSession(setup: RaceSetup, myAnimal: string | null, demo: boolean):
     sim.phase = 'running';
   }
   accumulator = 0;
-  return { trackId: setup.trackId, sim, trackView, view, drivers, hud: me >= 0 ? new Hud(sim, me, setup.trackId) : null, me, demo, names, net: null };
+  return {
+    trackId: setup.trackId,
+    sim,
+    trackView,
+    view,
+    drivers,
+    hud: me >= 0 ? new Hud(sim, me, setup.trackId) : null,
+    me,
+    demo,
+    names,
+    net: null,
+    sound: demo ? null : new GameAudio(sim, me),
+  };
 }
 
 function disposeSession() {
@@ -174,6 +190,10 @@ function startFromSetup(setup: RaceSetup, role: 'local' | 'host' | 'client') {
   screenNow = 'loading';
   showHud(false);
   stopAnimalPreview();
+  $('loading-busy').classList.remove('hidden');
+  $('btn-loading-go').classList.add('hidden');
+  $('loading-wait').classList.add('hidden');
+  hostStartAllowed = false;
   // Kurz warten, damit der Ladebildschirm sichtbar wird
   setTimeout(() => {
     const s = buildSession(setup, choice.animal, false);
@@ -187,13 +207,57 @@ function startFromSetup(setup: RaceSetup, role: 'local' | 'host' | 'client') {
     }
     session = s;
     s.view.resetCamera();
-    state = 'race';
-    showScreen('none');
-    screenNow = 'none';
-    showHud(true);
-    $('netinfo').classList.toggle('hidden', !mp);
-    input.clear();
+    // Die Strecken-Info bleibt stehen, bis man auf «Los geht's!» tippt
+    pendingRole = role;
+    $('loading-busy').classList.add('hidden');
+    const btn = $('btn-loading-go');
+    btn.classList.remove('hidden');
+    btn.textContent = role === 'local' ? T.menu.start : T.mp.setReady;
+    if (autoConfirm) confirmStart();
   }, 60);
+}
+
+let pendingRole: 'local' | 'host' | 'client' | null = null;
+/** Testhilfe: Start ohne Klick bestätigen */
+let autoConfirm = false;
+let hostStartAllowed = false;
+let hostWaitTimer = 0;
+
+/** «Los geht's!» auf dem Ladebildschirm */
+function confirmStart() {
+  const role = pendingRole;
+  if (!role || !session) return;
+  $('btn-loading-go').classList.add('hidden');
+  if (role === 'host') {
+    // Gastgeber wartet, bis alle Mitspieler bereit sind (höchstens 60 s)
+    hostStartAllowed = true;
+    $('loading-wait').classList.remove('hidden');
+    clearTimeout(hostWaitTimer);
+    hostWaitTimer = window.setTimeout(() => beginRace(), 60000);
+    tryHostStart();
+    return;
+  }
+  if (role === 'client') mp?.sendLoaded();
+  beginRace();
+}
+
+function tryHostStart() {
+  if (pendingRole === 'host' && hostStartAllowed && mp?.allLoaded()) beginRace();
+}
+
+function beginRace() {
+  if (!session || !pendingRole) return;
+  clearTimeout(hostWaitTimer);
+  pendingRole = null;
+  state = 'race';
+  showScreen('none');
+  screenNow = 'none';
+  showHud(true);
+  $('netinfo').classList.toggle('hidden', !mp);
+  input.clear();
+  music.intensity = 1;
+  music.play(session.trackId);
+  audio.setDuck(1);
 }
 
 /** Allein: Einzelrennen oder nächstes Cup-Rennen */
@@ -297,6 +361,7 @@ function finishRace() {
   if (cup) btnNext.textContent = cup.index + 1 < cup.tracks.length ? T.cup.next : T.cup.ceremony;
   showScreen('results');
   screenNow = 'results';
+  audio.setDuck(0.5);
 }
 
 function nextCupRace() {
@@ -317,6 +382,8 @@ function startCeremony() {
   showHud(false);
   const order = Object.keys(cup.points).sort((a, b) => cup!.points[b] - cup!.points[a]);
   ceremony = new Ceremony(gr, order.slice(0, 3));
+  audio.setDuck(1);
+  music.play('ceremony');
   const myPlace = order.indexOf(choice.animal) + 1;
   submitCup(cup.id, choice.animal, myPlace);
   cup.gained = {};
@@ -341,7 +408,10 @@ function frame(now: number) {
 
   if (ceremony) ceremony.update(dt);
   else if (session && state !== 'paused' && state !== 'loading') simulate(dt);
+  else if (session && state === 'loading' && pendingRole) session.view.update(1, dt, elapsed);
   gr.render(elapsed);
+  // Ruckelt es im Rennen, die Auflösung automatisch anpassen (nicht, wenn das Fenster verdeckt war)
+  if (state === 'race' && dt < 0.09) gr.adapt(dt);
 }
 
 /** Simulation um dt weiterrechnen und den Frame vorbereiten. */
@@ -353,6 +423,7 @@ function simulate(dt: number) {
   const handle = (e: Parameters<Hud['handleEvent']>[0]) => {
     s.hud?.handleEvent(e);
     s.view.handleEvent(e);
+    s.sound?.onEvent(e);
   };
   while (accumulator >= SIM_DT && steps < 20 * TIMESCALE) {
     const local = TEST_AUTOPILOT && s.me >= 0 ? s.drivers[s.me].think(s.sim) : input.sample();
@@ -383,6 +454,7 @@ function simulate(dt: number) {
   }
   s.view.update(accumulator / SIM_DT, dt, elapsed);
   s.hud?.update(dt);
+  s.sound?.update();
   if (mp && !s.demo) {
     const others = mp.lobby.players.filter((p) => !p.host && p.connected).length;
     $('netinfo').textContent = mp.isHost ? `${T.mp.host} · ${others} ${T.mp.players}` : `${T.mp.ping} ${mp.ping >= 0 ? mp.ping + ' ms' : '–'}`;
@@ -401,7 +473,7 @@ function updateFps(dt: number) {
   fpsAcc += dt;
   fpsFrames++;
   if (fpsAcc >= 0.5) {
-    fpsEl.textContent = `${Math.round(fpsFrames / fpsAcc)} fps · ${gr.renderer.info.render.calls} Draw-Calls`;
+    fpsEl.textContent = `${Math.round(fpsFrames / fpsAcc)} fps · ${gr.renderer.info.render.calls} Draw-Calls · Auflösung ${Math.round(gr.resolutionScale * 100)} %`;
     fpsAcc = 0;
     fpsFrames = 0;
   }
@@ -446,6 +518,10 @@ function go(screen: ScreenName) {
   if (screen === 'lobby' && mp) renderLobby(mp);
   showScreen(screen);
   screenNow = screen;
+  if (state === 'menu' && screen !== 'title') {
+    music.play('menu');
+    audio.setDuck(1);
+  }
 }
 
 function buildOptions() {
@@ -470,6 +546,32 @@ function buildOptions() {
     updateSettings({ controlHints: v === '1' });
     applyBodyFlags();
   });
+  const mus = $('opt-music') as HTMLInputElement;
+  const fx = $('opt-sfx') as HTMLInputElement;
+  mus.value = String(Math.round(s.musicVolume * 100));
+  fx.value = String(Math.round(s.sfxVolume * 100));
+  mus.oninput = () => {
+    updateSettings({ musicVolume: Number(mus.value) / 100 });
+    applyAudio();
+  };
+  fx.oninput = () => {
+    updateSettings({ sfxVolume: Number(fx.value) / 100 });
+    applyAudio();
+  };
+  fx.onchange = () => sfxClick();
+  segmented($('opt-mute'), [['1', T.options.on], ['0', T.options.off]], s.muted ? '1' : '0', (v) => {
+    updateSettings({ muted: v === '1' });
+    applyAudio();
+  });
+}
+
+function applyAudio() {
+  const s = settings();
+  audio.setVolumes(s.musicVolume, s.sfxVolume, s.muted);
+}
+
+function sfxClick() {
+  if (audio.ready) audio.tone(880, 0.08, { type: 'triangle', vol: 0.12 });
 }
 
 function applyBodyFlags() {
@@ -496,7 +598,9 @@ function togglePause() {
     state = 'paused';
     showScreen('pause');
     screenNow = 'pause';
+    audio.setDuck(0.35);
   } else if (state === 'paused') {
+    audio.setDuck(1);
     state = 'race';
     showScreen('none');
     screenNow = 'none';
@@ -569,6 +673,7 @@ function makeMultiplayer(): Multiplayer {
     snapshot: (msg) => {
       if (session?.net?.role === 'client') session.net.sync.onSnapshot(msg.s, msg.ack, msg.ev);
     },
+    loaded: () => tryHostStart(),
     input: (pid, seq, b) => {
       if (session?.net?.role === 'host') session.net.sync.setInput(pid, seq, b);
     },
@@ -702,6 +807,17 @@ function setupUi() {
     } else mp.setReady(!mp.me?.ready);
   });
   input.onPause = togglePause;
+  $('btn-loading-go').addEventListener('click', confirmStart);
+  // Ton startet erst nach der ersten Berührung / dem ersten Tastendruck (Browser-Regel)
+  input.onFirstInteraction = () => {
+    audio.start();
+    applyAudio();
+    if (state === 'menu') music.play('menu');
+  };
+  // Leiser Klick für Menü-Knöpfe
+  document.getElementById('ui')!.addEventListener('click', (e) => {
+    if ((e.target as HTMLElement).closest('button')) sfxClick();
+  });
 
   // Touch-Tasten
   input.bindTouchButton($('t-left'), 'links');
@@ -745,6 +861,10 @@ requestAnimationFrame(frame);
   get mp() {
     return mp;
   },
+  /** Testhilfe: Zustand der Ton-Ausgabe */
+  get audioState() {
+    return audio.ctx?.state ?? 'aus';
+  },
   /** Testhilfe: Spiel ohne Bildschirm-Takt um `seconds` vorspulen und ein Bild zeichnen. */
   advance: (seconds: number) => {
     const steps = Math.round(seconds * 30);
@@ -763,6 +883,7 @@ requestAnimationFrame(frame);
     startPower(session.sim, a);
   },
   startCup: (animal = 'lenni', cupId = 'pfoten') => {
+    autoConfirm = true;
     choice = { ...choice, animal, cup: cupId, mode: 'cup' };
     startCup();
   },
@@ -778,7 +899,10 @@ requestAnimationFrame(frame);
     session.sim.phase = 'done';
   },
   nextCupRace: () => nextCupRace(),
+  /** Testhilfe: «Los geht's!» auf dem Ladebildschirm drücken */
+  confirm: () => confirmStart(),
   startRace: (animal = 'lenni', track = 'bauernhof') => {
+    autoConfirm = true;
     choice = { ...choice, animal, track, mode: 'einzel' };
     cup = null;
     startRace();

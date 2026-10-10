@@ -70,7 +70,6 @@ export const HERBSTWALD: TrackData = {
   ],
   icons: [
     { s: 0.25, d: -2 },
-    { s: 0.55, d: 2 },
     { s: 0.95, d: 0 },
   ],
   items: [

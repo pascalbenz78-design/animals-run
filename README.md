@@ -2,7 +2,7 @@
 
 Ein Tier-Rennspiel im Browser: Pferde, Katzen, ein Husky und ein Hamster laufen auf Parcours mit Hindernissen um die Wette. Läuft am PC und am Handy, ohne Installation, ohne Werbung, ohne Anmeldung.
 
-> **Stand:** Phase 4 von 5 – Mehrspieler bis 3 Personen, 8 Strecken, 2 Cups mit Siegerehrung, alle 10 Tiere mit Superkräften, Items, 7 Computergegner. Details in `CLAUDE.md`.
+> **Stand:** Phase 5 von 5 – fertig: Ton und Musik, Mehrspieler bis 3 Personen, 8 Strecken, 2 Cups mit Siegerehrung, alle 10 Tiere mit Superkräften, Items, 7 Computergegner. Details in `CLAUDE.md`.
 
 ## Steuerung
 
@@ -53,7 +53,19 @@ npm run build
 
 Danach liegt die fertige Website im Ordner **`dist`**.
 
-### Variante A: Netlify (am einfachsten)
+### Variante A: GitHub Pages (empfohlen – aktualisiert sich automatisch)
+
+1. Auf https://github.com ein Repository anlegen (z. B. `animals-run`). Für kostenlose Konten muss es **öffentlich** sein.
+2. Das Projekt hochladen:
+   ```bash
+   git remote add origin https://github.com/DEIN-NAME/animals-run.git
+   git push -u origin main
+   ```
+3. Auf GitHub im Repository: **Settings → Pages → Source: «GitHub Actions»** wählen.
+4. Unter **Actions** läuft «Auf GitHub Pages veröffentlichen» (1–2 Minuten). Danach ist das Spiel unter `https://DEIN-NAME.github.io/animals-run/` erreichbar.
+5. Für ein Update genügt `git push` – die Seite wird automatisch neu gebaut.
+
+### Variante B: Netlify (ohne GitHub)
 
 1. Auf https://app.netlify.com ein kostenloses Konto erstellen.
 2. «Add new site» → «Deploy manually» wählen.
@@ -62,7 +74,7 @@ Danach liegt die fertige Website im Ordner **`dist`**.
 
 Für ein Update: `npm run build` und den neuen `dist`-Ordner wieder hineinziehen.
 
-### Variante B: GitHub Pages
+### Variante C: GitHub Pages ohne Actions (von Hand)
 
 1. Auf https://github.com ein Konto erstellen und ein neues Repository anlegen (z. B. `animals-run`).
 2. Das Projekt hochladen:

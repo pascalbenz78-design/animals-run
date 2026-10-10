@@ -66,7 +66,8 @@ export class TrackView {
     // Abkürzungen und Wahrzeichen von Deko freihalten
     for (const sc of this.el.shortcuts) for (let i = 0; i < sc.px.length; i += 2) this.occupied.push({ x: sc.px[i], z: sc.pz[i], r: 4 });
     this.buildLandmarks();
-    this.buildDecor(VIEW.decorDensity[quality], shadows);
+    // Auf «mittel» werfen Bäume und Büsche keine echten Schatten (spart Rechenzeit am Handy)
+    this.buildDecor(VIEW.decorDensity[quality], quality === 'hoch');
     this.buildHills();
   }
 

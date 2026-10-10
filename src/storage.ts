@@ -13,6 +13,9 @@ export interface Settings {
   lastTrack: string;
   /** Name im Mehrspieler */
   playerName: string;
+  musicVolume: number;
+  sfxVolume: number;
+  muted: boolean;
 }
 
 export interface SaveData {
@@ -31,7 +34,7 @@ function defaultQuality(): Quality {
 
 function defaults(): SaveData {
   return {
-    settings: { quality: defaultQuality(), autoRun: true, controlHints: true, lastAnimal: 'lenni', lastTrack: 'bauernhof', playerName: '' },
+    settings: { quality: defaultQuality(), autoRun: true, controlHints: true, lastAnimal: 'lenni', lastTrack: 'bauernhof', playerName: '', musicVolume: 0.6, sfxVolume: 0.8, muted: false },
     bestTimes: {},
     bestLaps: {},
     cupBest: {},

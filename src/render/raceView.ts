@@ -85,7 +85,8 @@ export class RaceView {
     blobGeo.rotateX(-Math.PI / 2);
     for (const a of sim.animals) {
       const m = new AnimalModel(getAnimal(a.animalId));
-      m.setShadows(gr.quality !== 'niedrig');
+      // Auf «mittel» wirft nur das eigene Tier einen echten Schatten, die anderen nur den Fleck am Boden
+      m.setShadows(gr.quality === 'hoch' || (gr.quality === 'mittel' && a.human));
       this.group.add(m.root);
       this.models.push(m);
       const blob = new THREE.Mesh(blobGeo, blobMat);

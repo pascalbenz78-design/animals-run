@@ -67,7 +67,6 @@ export const ALPEN: TrackData = {
   ],
   icons: [
     { s: 0.3, d: -2 },
-    { s: 0.6, d: 2 },
     { s: 0.86, d: 0 },
   ],
   items: [

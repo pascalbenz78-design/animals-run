@@ -1,0 +1,7 @@
+# Netlify: baut das Spiel und veröffentlicht den Ordner «dist».
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "22"

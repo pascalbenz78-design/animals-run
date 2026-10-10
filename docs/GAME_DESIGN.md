@@ -354,3 +354,20 @@ Hier stehen Entscheide, die während der Entwicklung getroffen wurden (mit Begr�
 40. **Pause im Mehrspieler** hält das Rennen nicht an (es zeigt nur das Menü); «Neustart» gibt es dort nicht.
 41. **Verbindungsabbruch:** Ein Computer übernimmt das Tier des Mitspielers. Wer im selben Browser-Tab mit demselben Code wieder beitritt, übernimmt sein Tier wieder (erkannt über ein Kennzeichen im Tab). Neue Mitspieler können während eines laufenden Rennens nicht beitreten. Verliert der Gastgeber die Verbindung, kommen alle mit einer Meldung ins Menü.
 42. **Cup im Mehrspieler:** Der Gastgeber führt den Cup (Punkte, nächstes Rennen, Siegerehrung) und schickt die Wertung an alle. Nach dem Rennen kann der Gastgeber alle in die Lobby zurückholen.
+
+### Nach Phase 4 (Wünsche)
+
+43. **Gonzi und die Sprünge:** Die Sprungwerte liegen enger beieinander (Hamster 1,30 m statt 1,05 m, Husky 1,33 m, Katzen 1,40 m, Pferde unverändert 1,54 m). Das Zeitfenster für einen fehlerfreien Sprung über den Oxer wächst für Gonzi von 0,13 s auf 0,37 s (`npx tsx scripts/jumpwindow.ts`).
+44. **Sprunghilfe für alle:** Wer bis 0,15 s vor der Landung springt, springt bei der Landung sofort wieder. Stangen, die man um höchstens 10 cm streift, zählen nicht als Fehler.
+45. **Strecken-Info vor dem Start** bleibt stehen, bis man «Los geht’s!» tippt; im Hintergrund ist die Startaufstellung zu sehen. Im Mehrspieler tippt jede Person «Ich bin bereit»; der Gastgeber startet, sobald alle bereit sind (spätestens nach 60 s). Die Mitspieler rechnen erst los, wenn der Gastgeber gestartet hat.
+46. **Weniger «Ausgebremst»** (für alle Tiere gleich), gemessen mit `npx tsx scripts/stuns.ts`: von 2,5 auf 1,7 Mal pro Tier und Rennen. Massnahmen: 2 statt 3 normale Icon-Punkte pro Runde (weniger Superkräfte insgesamt), Aufholhilfe 3-mal statt 4-mal so viele Icons auf Platz 8, 6 Sekunden Schutz nach einem Treffer, Computergegner zünden Stopp-Kräfte nur, wenn mehrere Tiere in Reichweite sind. Die Dauer und Reichweite der Kräfte blieben wie im Auftrag.
+
+### Phase 5
+
+47. **Ton ohne Dateien:** Musik, Tierstimmen und Effekte werden im Browser mit Web Audio erzeugt (Oszillatoren und gefiltertes Rauschen). Keine Lizenzfragen, kein Download. Jede Strecke hat eine eigene Melodie (Tonart, Tempo, Akkordfolge, Instrument), dazu Menü- und Siegerehrungsmusik; in der letzten Runde wird die Musik lebhafter.
+48. **Tierstimmen:** Wiehern, Miauen, Bellen und beim Jubeln Heulen (Husky), Fiepen (Hamster) – beim Start (eigenes Tier), bei jeder Superkraft und im Ziel. Jede Superkraft hat zusätzlich einen eigenen Klang.
+49. **Räumlicher Ton:** Geräusche anderer Tiere werden leiser, je weiter weg sie sind, und kommen von links/rechts. Schritte und Hufe klingen je nach Untergrund (Weg, Sand, Matsch, Eis, Wasser) – laut nur für das eigene Tier.
+50. **Optionen:** Lautstärke Musik, Lautstärke Effekte, Stumm. Ton startet erst nach der ersten Berührung bzw. dem ersten Tastendruck.
+51. **Leistung:** Die Auflösung passt sich im Rennen automatisch an (sinkt bis 60 %, wenn es unter 45 fps fällt, steigt wieder bei über 57 fps). Auf «mittel» werfen nur das eigene Tier und die Hindernisse echte Schatten. Das ganze Spiel ist ca. 0,9 MB gross (komprimiert 0,25 MB).
+52. **Letzte Balance-Runde:** Furiels Schub nach der Sprung-Attacke hält 2,5 s (statt 1,5 s), Rays Äpfel treffen etwas breiter. Alle Tiere liegen im Schnitt innerhalb von 1,3 Plätzen (`npm run sim -- 20`, alle Strecken, Stufe «Mittel»).
+53. **Veröffentlichung:** GitHub Pages mit automatischer Veröffentlichung bei jedem Push (`.github/workflows/deploy.yml`) oder Netlify (`netlify.toml`). Pfade sind relativ (`base: './'`), damit das Spiel auch in einem Unterordner läuft.

@@ -9,4 +9,6 @@
 | Icons und Item-Symbole (Emoji) | werden mit der Emoji-Schrift des jeweiligen Geräts gezeichnet, keine Bilddateien | – |
 | Texturen (Erdweg, Zielflagge, Banner, Item-Kiste) | selbst erstellt (zur Laufzeit per Canvas gezeichnet) | Teil dieses Projekts |
 
-Es werden keine externen Bilder, Modelle, Schriften oder Töne geladen.
+| Musik, Tierstimmen, Geräusche | selbst erstellt (zur Laufzeit per Web Audio erzeugt) | Teil dieses Projekts |
+
+Es werden keine externen Bilder, Modelle, Schriften oder Tondateien geladen.
