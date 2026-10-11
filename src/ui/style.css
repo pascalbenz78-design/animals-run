@@ -1571,3 +1571,58 @@ td.wait {
     font-size: 16px;
   }
 }
+
+/* Bestzeiten */
+.records-box {
+  width: min(760px, 100%);
+  padding: 8px 14px;
+}
+.records-box h3 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+.records-box table,
+.records-panel table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+.records-box th,
+.records-panel th {
+  text-align: left;
+  font-size: 13px;
+  opacity: 0.7;
+  padding: 2px 6px;
+}
+.records-box td,
+.records-panel td {
+  padding: 3px 6px;
+  border-top: 1px solid rgba(43, 26, 14, 0.12);
+}
+.records-box small,
+.records-panel small {
+  opacity: 0.75;
+}
+.records-box .note {
+  margin: 6px 0 0;
+  font-size: 14px;
+}
+.rec-new {
+  color: #1f8a2e;
+  font-weight: 900;
+}
+.rec-behind {
+  color: #b5452f;
+  font-weight: 800;
+}
+.records-panel {
+  width: min(760px, 100%);
+}
+.records-panel #records-cups {
+  margin-top: 12px;
+}
+.records-panel .note {
+  margin: 8px 0 0;
+  font-size: 13px;
+  opacity: 0.7;
+}

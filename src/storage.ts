@@ -47,6 +47,15 @@ function defaults(): SaveData {
 
 let cache: SaveData | null = null;
 
+/** Unmögliche Zeiten (z. B. aus Tests) nie als Rekord speichern: Runden ab 10 s, Rennen ab 30 s */
+const MIN_LAP = 10;
+const MIN_RACE = 30;
+
+function plausible(map: Record<string, { time: number; animalId: string }>, min: number) {
+  for (const k of Object.keys(map)) if (!(map[k]?.time >= min)) delete map[k];
+  return map;
+}
+
 export function load(): SaveData {
   if (cache) return cache;
   const d = defaults();
@@ -56,8 +65,8 @@ export function load(): SaveData {
       const p = JSON.parse(raw) as Partial<SaveData>;
       cache = {
         settings: { ...d.settings, ...(p.settings ?? {}) },
-        bestTimes: p.bestTimes ?? {},
-        bestLaps: p.bestLaps ?? {},
+        bestTimes: plausible(p.bestTimes ?? {}, MIN_RACE),
+        bestLaps: plausible(p.bestLaps ?? {}, MIN_LAP),
         cupBest: p.cupBest ?? {},
       };
       return cache;
@@ -87,6 +96,23 @@ export function updateSettings(p: Partial<Settings>) {
   save();
 }
 
+export type RecordEntry = { time: number; animalId: string } | null;
+
+/** Rekorde einer Strecke (ganzes Rennen und beste Runde) */
+export function trackRecords(trackId: string): { race: RecordEntry; lap: RecordEntry } {
+  const d = load();
+  return { race: d.bestTimes[trackId] ?? null, lap: d.bestLaps[trackId] ?? null };
+}
+
+/** Alle Bestzeiten und Cup-Ergebnisse löschen (Einstellungen bleiben) */
+export function resetRecords() {
+  const d = load();
+  d.bestTimes = {};
+  d.bestLaps = {};
+  d.cupBest = {};
+  save();
+}
+
 /** Bestzeit einer Strecke für eine Runde (oder null). */
 export function bestLap(trackId: string): number | null {
   return load().bestLaps[trackId]?.time ?? null;
@@ -96,7 +122,7 @@ export function bestLap(trackId: string): number | null {
 export function submitLap(trackId: string, animalId: string, time: number): { previous: number | null; isNew: boolean } {
   const d = load();
   const previous = d.bestLaps[trackId]?.time ?? null;
-  const isNew = previous === null || time < previous;
+  const isNew = time >= MIN_LAP && (previous === null || time < previous);
   if (isNew) {
     d.bestLaps[trackId] = { time, animalId };
     save();
@@ -119,12 +145,12 @@ export function submitTime(trackId: string, animalId: string, time: number, best
   const d = load();
   let isNew = false;
   const prev = d.bestTimes[trackId];
-  if (!prev || time < prev.time) {
+  if (time >= MIN_RACE && (!prev || time < prev.time)) {
     d.bestTimes[trackId] = { time, animalId };
     isNew = true;
   }
   const pl = d.bestLaps[trackId];
-  if (isFinite(bestLap) && (!pl || bestLap < pl.time)) d.bestLaps[trackId] = { time: bestLap, animalId };
+  if (isFinite(bestLap) && bestLap >= MIN_LAP && (!pl || bestLap < pl.time)) d.bestLaps[trackId] = { time: bestLap, animalId };
   save();
   return isNew;
 }

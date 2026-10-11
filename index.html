@@ -43,6 +43,7 @@
           <button class="btn big cup" id="btn-cup" data-t="menu.cup"></button>
           <button class="btn big mp" data-go="mp" data-t="menu.mp"></button>
           <button class="btn" data-go="options" data-t="menu.options"></button>
+          <button class="btn" data-go="records" data-t="menu.records"></button>
           <button class="btn" data-go="help" data-t="menu.help"></button>
           <button class="btn" data-go="controls" data-t="menu.controls"></button>
         </div>
@@ -139,6 +140,16 @@
         <p id="lobby-status" class="lobby-status"></p>
       </section>
 
+      <!-- Bestzeiten -->
+      <section id="scr-records" class="screen hidden">
+        <h2 data-t="records.title"></h2>
+        <div class="panel records-panel"><table id="records-table"></table><table id="records-cups"></table><p class="note" data-t="records.deviceNote"></p></div>
+        <div class="row">
+          <button class="btn" data-go="main" data-t="menu.back"></button>
+          <button class="btn danger" id="btn-records-reset" data-t="records.reset"></button>
+        </div>
+      </section>
+
       <!-- Hilfe -->
       <section id="scr-help" class="screen hidden">
         <h2 data-t="help.title"></h2>
@@ -216,6 +227,7 @@
       <section id="scr-results" class="screen dim hidden">
         <h2 id="results-title" data-t="results.title"></h2>
         <div id="record" class="record hidden" data-t="results.newRecord"></div>
+        <div id="records-box" class="panel records-box"></div>
         <p id="results-wait" class="lobby-status hidden" data-t="mp.waitHost"></p>
         <div class="results-row">
           <div class="panel"><table id="results-table"></table></div>

@@ -26,7 +26,7 @@ import { TrackView, type Quality } from './render/trackView';
 import { Ceremony } from './render/ceremony';
 import { Intro, type IntroCue } from './render/intro';
 import { CUPS, getTrack, TRACKS } from './tracks';
-import { settings, submitCup, submitTime, updateSettings } from './storage';
+import { resetRecords, settings, submitCup, submitTime, trackRecords, updateSettings, type RecordEntry } from './storage';
 import { Hud } from './ui/hud';
 import { renderLobby } from './ui/lobby';
 import {
@@ -36,6 +36,8 @@ import {
   buildControlsTable,
   buildCupCards,
   buildHelp,
+  buildRaceRecords,
+  buildRecordsScreen,
   buildResults,
   buildStandings,
   buildTrackCards,
@@ -294,8 +296,12 @@ function tryHostStart() {
   if (pendingRole === 'host' && hostStartAllowed && mp?.allLoaded()) beginRace();
 }
 
+/** Rekorde der Strecke vor diesem Rennen (die Runden-Bestzeit wird schon während des Rennens nachgeführt) */
+let recordsBefore: { race: RecordEntry; lap: RecordEntry } = { race: null, lap: null };
+
 function beginRace() {
   if (!session || !pendingRole) return;
+  recordsBefore = trackRecords(session.trackId);
   clearTimeout(hostWaitTimer);
   pendingRole = null;
   state = 'race';
@@ -384,6 +390,14 @@ function finishRace() {
   const isRecord = me.finished ? submitTime(s.trackId, me.animalId, me.finishTime, me.bestLap) : false;
   const results = s.sim.results();
   buildResults(results, s.names, s.me, isRecord);
+  // Bestzeiten: Rekord vor dem Rennen, eigene Zeit, Abstand
+  const fastest = results.filter((r) => isFinite(r.bestLap)).sort((a, b) => a.bestLap - b.bestLap)[0];
+  buildRaceRecords(
+    getTrack(s.trackId).name,
+    recordsBefore,
+    { race: me.finished ? me.finishTime : null, lap: isFinite(me.bestLap) ? me.bestLap : null },
+    fastest ? { name: s.names[fastest.animal], time: fastest.bestLap } : null,
+  );
   const role = s.net?.role ?? 'local';
   if (role !== 'client' && cup) {
     // Punkte verteilen: 15 – 12 – 10 – 8 – 6 – 4 – 2 – 1
@@ -578,6 +592,7 @@ function go(screen: ScreenName) {
     $('mp-status').textContent = '';
   }
   if (screen === 'lobby' && mp) renderLobby(mp);
+  if (screen === 'records') buildRecordsScreen();
   showScreen(screen);
   screenNow = screen;
   if (state === 'menu' && screen !== 'title') {
@@ -959,6 +974,12 @@ function setupUi() {
     if ((e as KeyboardEvent).key === 'Enter') joinRoom();
   });
   $('btn-lobby-leave').addEventListener('click', () => void leaveMp());
+  $('btn-records-reset').addEventListener('click', async () => {
+    if (await askConfirm(T.records.resetConfirm, T.records.resetYes, T.records.resetNo)) {
+      resetRecords();
+      buildRecordsScreen();
+    }
+  });
   $('btn-lobby-animal').addEventListener('click', () => go('animal'));
   $('btn-lobby-ready').addEventListener('click', () => {
     if (!mp) return;

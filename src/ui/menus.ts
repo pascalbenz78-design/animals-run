@@ -4,10 +4,10 @@ import { ANIMALS, getAnimal, SPECIES_STATS, type BaseStats } from '../animals/an
 import { AnimalPreview } from './preview';
 import type { ResultRow } from '../game/types';
 import { CUPS, TRACKS } from '../tracks';
-import { load } from '../storage';
+import { load, type RecordEntry } from '../storage';
 import { formatTime } from './hud';
 
-export type ScreenName = 'title' | 'intro' | 'main' | 'animal' | 'track' | 'options' | 'controls' | 'loading' | 'pause' | 'results' | 'ceremony' | 'help' | 'mp' | 'lobby' | 'none';
+export type ScreenName = 'title' | 'intro' | 'records' | 'main' | 'animal' | 'track' | 'options' | 'controls' | 'loading' | 'pause' | 'results' | 'ceremony' | 'help' | 'mp' | 'lobby' | 'none';
 
 const $ = <E extends HTMLElement>(id: string) => document.getElementById(id) as E;
 
@@ -21,7 +21,7 @@ export function applyTexts() {
   });
 }
 
-const SCREENS: ScreenName[] = ['title', 'intro', 'main', 'animal', 'track', 'options', 'controls', 'loading', 'pause', 'results', 'ceremony', 'help', 'mp', 'lobby'];
+const SCREENS: ScreenName[] = ['title', 'intro', 'records', 'main', 'animal', 'track', 'options', 'controls', 'loading', 'pause', 'results', 'ceremony', 'help', 'mp', 'lobby'];
 
 export function showScreen(name: ScreenName) {
   for (const s of SCREENS) $(`scr-${s}`).classList.toggle('hidden', s !== name);
@@ -209,6 +209,59 @@ export function buildControlsTable() {
   tbl.innerHTML =
     `<tr><th></th><th>${T.controls.pc}</th><th>${T.controls.touch}</th></tr>` +
     T.controls.rows.map(([a, b, c]) => `<tr><td><b>${a}</b></td><td>${b}</td><td>${c}</td></tr>`).join('');
+}
+
+/** Abstand als «+1.23 s» / «−0.45 s» */
+function diffText(d: number): string {
+  return `${d > 0 ? '+' : '−'}${Math.abs(d).toFixed(2)} s`;
+}
+
+/**
+ * Bestzeiten-Box nach dem Rennen: Rekord (vor diesem Rennen), eigene Zeit und Abstand –
+ * für das ganze Rennen und die beste Runde. Dazu die schnellste Runde dieses Rennens.
+ */
+export function buildRaceRecords(
+  trackName: string,
+  before: { race: RecordEntry; lap: RecordEntry },
+  mine: { race: number | null; lap: number | null },
+  fastest: { name: string; time: number } | null,
+) {
+  const row = (label: string, rec: RecordEntry, me: number | null) => {
+    const recText = rec ? `${formatTime(rec.time)} <small>(${getAnimal(rec.animalId).name})</small>` : T.records.none;
+    const done = me !== null && isFinite(me);
+    const meText = done ? formatTime(me) : `<small>${T.records.notFinished}</small>`;
+    let diff = '';
+    if (done) {
+      if (!rec) diff = `<span class="rec-new">${T.records.first}</span>`;
+      else if (me < rec.time) diff = `<span class="rec-new">${T.records.newRecord} ${diffText(me - rec.time)}</span>`;
+      else diff = `<span class="rec-behind">${diffText(me - rec.time)}</span>`;
+    }
+    return `<tr><td>${label}</td><td class="mono">${recText}</td><td class="mono">${meText}</td><td class="mono">${diff}</td></tr>`;
+  };
+  $('records-box').innerHTML =
+    `<h3>🏆 ${T.records.onTrack} · ${trackName}</h3><table>` +
+    `<tr><th></th><th>${T.records.record}</th><th>${T.records.you}</th><th>${T.records.diff}</th></tr>` +
+    row(T.records.race, before.race, mine.race) +
+    row(T.records.lap, before.lap, mine.lap) +
+    `</table>` +
+    (fastest ? `<p class="note">⏱️ ${T.records.fastestLap}: <b>${fastest.name}</b> ${formatTime(fastest.time)}</p>` : '');
+}
+
+/** Bestzeiten-Bildschirm: alle Strecken und Cups */
+export function buildRecordsScreen() {
+  const d = load();
+  const cell = (r: RecordEntry | undefined) =>
+    r ? `${formatTime(r.time)} <small>${getAnimal(r.animalId).icon} ${getAnimal(r.animalId).name}</small>` : T.records.none;
+  $('records-table').innerHTML =
+    `<tr><th>${T.records.track}</th><th>${T.records.race}</th><th>${T.records.lap}</th></tr>` +
+    TRACKS.map((t) => `<tr><td>${t.name}</td><td class="mono">${cell(d.bestTimes[t.id])}</td><td class="mono">${cell(d.bestLaps[t.id])}</td></tr>`).join('');
+  $('records-cups').innerHTML =
+    `<tr><th colspan="2">${T.records.cups}</th></tr>` +
+    CUPS.map((c) => {
+      const b = d.cupBest[c.id];
+      const val = b ? `${b.place}. ${T.results.place} <small>${getAnimal(b.animalId).icon} ${getAnimal(b.animalId).name}</small>` : T.cup.none;
+      return `<tr><td>${c.icon} ${c.name}</td><td>${val}</td></tr>`;
+    }).join('');
 }
 
 export function buildResults(rows: ResultRow[], names: string[], me: number, newRecord: boolean) {
