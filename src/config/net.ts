@@ -16,6 +16,14 @@ export const NET = {
   snapshotEvery: 3,
   /** Ping-Intervall in Millisekunden */
   pingInterval: 2000,
+  /** Gastgeber gilt als weg, wenn im Rennen so lange kein Spielzustand kommt (ms) … */
+  hostSilentRace: 3000,
+  /** … bzw. sonst (Lobby, Ergebnis) gar keine Nachricht (ms) */
+  hostSilentIdle: 7000,
+  /** Übernahme: der 1. Mitspieler sofort, der 2. nach so vielen ms, der 3. nach doppelt so vielen … */
+  takeoverStagger: 7000,
+  /** So lange wird nach einem Gastgeber-Ausfall versucht, weiterzuspielen (ms) */
+  migrateTimeout: 45000,
   /** Höchstens so viele Schritte rechnet ein Mitspieler dem Gastgeber voraus (45 = 0,75 s), dann wartet er */
   maxAhead: 45,
   /** Ab dieser Abweichung wird ein Tier direkt versetzt statt sanft nachgeführt (Meter) */

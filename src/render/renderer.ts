@@ -113,7 +113,13 @@ export class GameRenderer {
     this.setQuality(quality);
     this.resize();
     window.addEventListener('resize', () => this.resize());
+    window.addEventListener('orientationchange', () => setTimeout(() => this.resize(), 250));
+    document.addEventListener('fullscreenchange', () => setTimeout(() => this.resize(), 100));
   }
+
+  /** Zuletzt gesetzte Grösse (CSS-Pixel) */
+  private w = 0;
+  private h = 0;
 
   /** Automatische Auflösung (1 = volle Auflösung der Grafikstufe) */
   private scale = 1;
@@ -171,10 +177,18 @@ export class GameRenderer {
     this.sun.target.updateMatrixWorld();
   }
 
+  /**
+   * Grösse an die Spielfläche anpassen. Die Leinwand füllt per CSS immer den ganzen Bildschirm;
+   * hier wird nur die Auflösung nachgeführt (Android meldet nach Drehen/Vollbild die neue Grösse
+   * manchmal verspätet – darum prüft render() bei jedem Bild).
+   */
   resize() {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    this.renderer.setSize(w, h);
+    const el = this.renderer.domElement;
+    const w = el.clientWidth || window.innerWidth;
+    const h = el.clientHeight || window.innerHeight;
+    this.w = w;
+    this.h = h;
+    this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     // Im Hochformat etwas mehr Sichtfeld
     this.camera.updateProjectionMatrix();
@@ -210,6 +224,8 @@ export class GameRenderer {
   }
 
   render(time: number) {
+    const el = this.renderer.domElement;
+    if (el.clientWidth !== this.w || el.clientHeight !== this.h) this.resize();
     this.sky.position.copy(this.camera.position);
     this.clouds.position.set(this.camera.position.x * 0.9, 0, this.camera.position.z * 0.9);
     this.clouds.rotation.y = time * 0.004;

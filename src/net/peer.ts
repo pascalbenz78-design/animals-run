@@ -1,6 +1,8 @@
 /**
  * Verbindungen über WebRTC (PeerJS): Der Gastgeber erhält eine Peer-ID aus dem Raumcode,
  * Mitspieler verbinden sich mit dieser ID. Alle Nachrichten sind JSON-Text.
+ * Übernimmt nach einem Ausfall ein anderes Gerät, erhält es die ID der nächsten «Generation»
+ * (Code-1, Code-2 …) – der Raumcode bleibt für alle gleich.
  */
 import Peer, { type DataConnection } from 'peerjs';
 import { NET } from '../config/net';
@@ -19,6 +21,14 @@ export function normalizeCode(raw: string): string {
     .replace(/[^A-Z0-9]/g, '')
     .slice(0, NET.codeLength);
 }
+
+/** Peer-ID des Gastgebers einer Generation (0 = ursprünglicher Gastgeber) */
+export function hostPeerId(code: string, gen: number): string {
+  return NET.idPrefix + code + (gen > 0 ? '-' + gen : '');
+}
+
+/** Fehler «ID schon vergeben» (beim Übernehmen: jemand anderes war schneller) */
+export const ID_TAKEN = 'id-taken';
 
 function makePeer(id?: string): Peer {
   const opts = { config: { iceServers: NET.iceServers }, debug: 1 };
@@ -53,11 +63,20 @@ export class HostLink {
 
   /** Raum eröffnen; bei schon vergebenem Code wird ein neuer versucht. */
   open(): Promise<string> {
+    return this.listen(() => randomCode(), 0, 5);
+  }
+
+  /** Gastgeber übernehmen: feste ID der Generation `gen`. Schon vergeben → Fehler ID_TAKEN. */
+  openAt(code: string, gen: number): Promise<string> {
+    return this.listen(() => code, gen, 0);
+  }
+
+  private listen(makeCode: () => string, gen: number, retries: number): Promise<string> {
     return new Promise((resolve, reject) => {
       let tries = 0;
       const attempt = () => {
-        const code = randomCode();
-        const peer = makePeer(NET.idPrefix + code);
+        const code = makeCode();
+        const peer = makePeer(hostPeerId(code, gen));
         peer.on('open', () => {
           this.peer = peer;
           this.code = code;
@@ -65,17 +84,20 @@ export class HostLink {
         });
         peer.on('connection', (conn) => this.accept(conn));
         peer.on('error', (err: { type: string }) => {
-          if (err.type === 'unavailable-id' && tries++ < 5) {
+          if (err.type === 'unavailable-id' && tries++ < retries) {
             peer.destroy();
             attempt();
             return;
           }
-          if (!this.peer) reject(new Error(errorText(err.type)));
+          if (!this.peer) {
+            peer.destroy();
+            reject(new Error(err.type === 'unavailable-id' ? ID_TAKEN : errorText(err.type)));
+          }
           else if (err.type !== 'peer-unavailable') this.onFatal(errorText(err.type));
         });
         peer.on('disconnected', () => {
           // Verbindung zum Vermittlungsserver weg: bestehende Spielverbindungen laufen weiter
-          peer.reconnect();
+          if (this.peer === peer && !peer.destroyed) peer.reconnect();
         });
       };
       attempt();
@@ -132,31 +154,53 @@ export class ClientLink {
   private conn: DataConnection | null = null;
   private closed = false;
 
-  connect(code: string): Promise<void> {
+  /**
+   * Mit dem Gastgeber verbinden. Probiert die Generationen `gens` der Reihe nach (nach einem
+   * Gastgeber-Wechsel hat der Raum eine neue ID). Gibt die Generation zurück, die geantwortet hat.
+   */
+  connect(code: string, gens: number[] = [0, 1, 2, 3, 4, 5, 6, 7], totalTimeout = 15000): Promise<number> {
     return new Promise((resolve, reject) => {
       const peer = makePeer();
       this.peer = peer;
       let opened = false;
-      const timer = setTimeout(() => {
-        if (!opened) {
-          reject(new Error(T.mp.errTimeout));
-          this.close();
-        }
-      }, 12000);
-      peer.on('open', () => {
-        const conn = peer.connect(NET.idPrefix + code, { reliable: true, serialization: 'raw' });
+      let attempt = -1;
+      let attemptTimer = 0;
+      const fail = (text: string) => {
+        if (opened) return;
+        opened = true; // keine weiteren Versuche
+        clearTimeout(timer);
+        clearTimeout(attemptTimer);
+        this.close();
+        reject(new Error(text));
+      };
+      const timer = setTimeout(() => fail(T.mp.errTimeout), totalTimeout);
+      const tryNext = () => {
+        clearTimeout(attemptTimer);
+        if (opened) return;
+        this.conn?.close();
+        attempt++;
+        if (attempt >= gens.length) return fail(T.mp.errNotFound);
+        const mine = attempt;
+        const conn = peer.connect(hostPeerId(code, gens[mine]), { reliable: true, serialization: 'raw' });
         this.conn = conn;
+        // Antwortet ein (abgestürzter) Gastgeber gar nicht, nach kurzer Zeit die nächste Generation probieren
+        attemptTimer = window.setTimeout(() => {
+          if (!opened && attempt === mine) tryNext();
+        }, 4000);
         conn.on('open', () => {
+          if (opened || attempt !== mine) return;
           opened = true;
           clearTimeout(timer);
-          resolve();
+          clearTimeout(attemptTimer);
+          resolve(gens[mine]);
         });
         conn.on('data', (data) => {
+          if (this.conn !== conn) return;
           const msg = typeof data === 'string' ? decode(data) : null;
           if (msg) this.onMessage(msg);
         });
         const lost = () => {
-          if (this.closed) return;
+          if (this.conn !== conn || !opened || this.closed) return;
           this.closed = true;
           this.onClose();
         };
@@ -166,15 +210,15 @@ export class ClientLink {
           const st = conn.peerConnection.connectionState;
           if (st === 'failed' || st === 'closed') lost();
         });
-      });
+      };
+      peer.on('open', () => tryNext());
       peer.on('error', (err: { type: string }) => {
-        if (!opened) {
-          clearTimeout(timer);
-          reject(new Error(errorText(err.type)));
-        }
+        if (opened) return;
+        if (err.type === 'peer-unavailable') tryNext();
+        else fail(errorText(err.type));
       });
       peer.on('disconnected', () => {
-        if (opened) peer.reconnect();
+        if (opened && !this.closed && !peer.destroyed) peer.reconnect();
       });
     });
   }

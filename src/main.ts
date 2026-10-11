@@ -342,7 +342,10 @@ function startMpRace() {
   if (l.mode === 'cup') {
     if (!cup) cup = newCup(l.cup, humans.map((h) => h.animal));
   } else cup = null;
-  const opponents = cup ? cup.roster : pickOpponents(humans.map((h) => h.animal));
+  // Im Cup fahren alle Tiere der Wertung weiter; wer keinen Menschen mehr hat, fährt als Computer
+  const opponents = cup
+    ? [...cup.roster, ...Object.keys(cup.points).filter((id) => !cup!.roster.includes(id) && !humans.some((h) => h.animal === id))]
+    : pickOpponents(humans.map((h) => h.animal));
   const setup: RaceSetup = {
     trackId: cup ? cup.tracks[cup.index] : l.track,
     laps: RACE.laps,
@@ -399,7 +402,15 @@ function finishRace() {
   const title = $('results-title');
   title.textContent = cup ? `${T.cup.race} ${cup.index + 1}/${cup.tracks.length} · ${getTrack(s.trackId).name}` : T.results.title;
   showCupBox();
-  // Knöpfe je nach Rolle
+  updateResultButtons();
+  showScreen('results');
+  screenNow = 'results';
+  audio.setDuck(0.5);
+}
+
+/** Knöpfe auf dem Ergebnis-Bildschirm je nach Rolle (ändert sich bei einem Gastgeber-Wechsel) */
+function updateResultButtons() {
+  const role = session?.net?.role ?? 'local';
   const btnMenu = $('btn-results-menu');
   const btnAgain = $('btn-again');
   const btnNext = $('btn-next');
@@ -408,9 +419,6 @@ function finishRace() {
   btnAgain.classList.toggle('hidden', !!cup || role === 'client');
   btnNext.classList.toggle('hidden', !cup || role === 'client');
   if (cup) btnNext.textContent = cup.index + 1 < cup.tracks.length ? T.cup.next : T.cup.ceremony;
-  showScreen('results');
-  screenNow = 'results';
-  audio.setDuck(0.5);
 }
 
 function nextCupRace() {
@@ -464,9 +472,13 @@ function frame(now: number) {
   if (state === 'race' && dt < 0.09) gr.adapt(dt);
 }
 
+/** Zeitpunkt des letzten Simulationsschritts (für den Gastgeber-Wechsel) */
+let lastSimAt = 0;
+
 /** Simulation um dt weiterrechnen und den Frame vorbereiten. */
 function simulate(dt: number) {
   if (!session) return;
+  lastSimAt = performance.now();
   const s = session;
   accumulator += dt * TIMESCALE;
   let steps = 0;
@@ -682,6 +694,33 @@ function toMenu() {
   go('main');
 }
 
+/** Rückfrage mit zwei Knöpfen (Ja/Nein) */
+function askConfirm(text: string, yes: string, no: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const box = $('confirm');
+    $('confirm-text').textContent = text;
+    const by = $('confirm-yes');
+    const bn = $('confirm-no');
+    by.textContent = yes;
+    bn.textContent = no;
+    box.classList.remove('hidden');
+    const done = (ok: boolean) => {
+      box.classList.add('hidden');
+      by.onclick = bn.onclick = null;
+      resolve(ok);
+    };
+    by.onclick = () => done(true);
+    bn.onclick = () => done(false);
+  });
+}
+
+/** Mehrspieler verlassen – nur nach Bestätigung (aus Versehen tippt man schnell daneben) */
+async function leaveMp() {
+  if (!mp) return toMenu();
+  const ok = await askConfirm(mp.isHost ? T.mp.confirmLeaveHost : T.mp.confirmLeave, T.mp.confirmYes, T.mp.confirmNo);
+  if (ok && mp) toMenu();
+}
+
 /** Zurück in die Lobby (nach einem Rennen im Mehrspieler) */
 function enterLobby() {
   state = 'menu';
@@ -694,6 +733,57 @@ function enterLobby() {
   showHud(false);
   if (!session?.demo) startDemo();
   go('lobby');
+}
+
+/** Gastgeber-Wechsel: dieses Gerät übernimmt das laufende Rennen bzw. den Cup */
+function becomeHost() {
+  const s = session;
+  const setup = mp?.setup;
+  if (s && !s.demo && s.net?.role === 'client' && setup) {
+    const humans = setup.humans.map((h) => ({ playerId: h.playerId, index: s.sim.animals.findIndex((a) => a.animalId === h.animal) }));
+    s.net = { role: 'host', sync: new HostRaceSync(s.sim, s.me, humans, (pid, text) => mp?.sendTo(pid, text)) };
+  }
+  if (pendingRole === 'client') pendingRole = 'host';
+  if (setup?.cup) {
+    const roster = setup.entrants.filter((e) => !e.human).map((e) => e.animalId);
+    if (state === 'results' && !pendingCupInfo && s) {
+      // Die Wertung kam vom alten Gastgeber nicht mehr an: Punkte selbst verteilen
+      const c: CupInfo = { ...setup.cup, points: { ...setup.cup.points }, gained: {} };
+      for (const r of s.sim.results()) {
+        const pts = RACE.cupPoints[r.place - 1] ?? 0;
+        c.points[r.animalId] = (c.points[r.animalId] ?? 0) + pts;
+        c.gained[r.animalId] = pts;
+      }
+      pendingCupInfo = c;
+    }
+    const base = state === 'results' || state === 'ceremony' ? (pendingCupInfo ?? cup ?? setup.cup) : setup.cup;
+    cup = { ...base, roster };
+    if (state === 'results') showCupBox();
+  }
+  refreshRoleUi();
+}
+
+/** Gastgeber-Wechsel: ein anderes Gerät hat übernommen – hier als Mitspieler weiter */
+function becomeClient() {
+  const s = session;
+  if (s && !s.demo && s.net?.role === 'host') {
+    const sync = new ClientRaceSync(s.sim, s.me, (seq, b) => mp?.sendInput(seq, b));
+    s.net = { role: 'client', sync };
+    s.view.offsets = sync.offsets;
+  }
+  if (pendingRole === 'host') {
+    clearTimeout(hostWaitTimer);
+    // Hatte der Gastgeber schon bestätigt, geht es direkt los (sobald der neue Gastgeber rechnet)
+    if (hostStartAllowed) beginRace();
+    else pendingRole = 'client';
+  }
+  refreshRoleUi();
+}
+
+function refreshRoleUi() {
+  if (state === 'results') updateResultButtons();
+  if (state === 'ceremony') $('btn-ceremony-menu').textContent = mp ? (mp.isHost ? T.mp.toLobby : T.mp.leave) : T.results.menu;
+  if (screenNow === 'lobby' && mp) renderLobby(mp);
 }
 
 let noticeTimer = 0;
@@ -737,6 +827,8 @@ function makeMultiplayer(): Multiplayer {
       if (session?.net?.role !== 'host') return;
       if (oldId) session.net.sync.rebind(oldId, pid);
       session.net.sync.setConnected(pid, connected);
+      // Wiedereinsteiger auf dem Ergebnis-Bildschirm brauchen die Wertung nochmals
+      if (connected && state === 'results') mp?.sendResults(cupInfo(cup));
     },
     results: (info) => {
       pendingCupInfo = info;
@@ -755,6 +847,16 @@ function makeMultiplayer(): Multiplayer {
     leave: (reason) => {
       toMenu();
       notice(reason);
+    },
+    hasRace: () => !!session && !session.demo && !!session.net && (state === 'loading' || state === 'race' || state === 'results' || state === 'ceremony'),
+    expectingSnapshots: () =>
+      session?.net?.role === 'client' && state === 'race' && session.net.sync.synced && session.sim.phase !== 'done',
+    becameHost: () => becomeHost(),
+    // Rechnet dieses Gerät gerade? (eingefroren/im Hintergrund: nein)
+    alive: () => state !== 'race' || performance.now() - lastSimAt < 1500,
+    becameClient: () => becomeClient(),
+    resume: () => {
+      if (session?.net?.role === 'client') session.net.sync.resetForNewHost();
     },
   });
 }
@@ -828,11 +930,11 @@ function setupUi() {
     go('animal');
   });
   $('btn-next').addEventListener('click', nextCupRace);
-  $('btn-ceremony-menu').addEventListener('click', () => (mp?.isHost ? (mp.backToLobby(), enterLobby()) : toMenu()));
+  $('btn-ceremony-menu').addEventListener('click', () => (mp?.isHost ? (mp.backToLobby(), enterLobby()) : void leaveMp()));
   $('btn-pause').addEventListener('click', togglePause);
   $('btn-resume').addEventListener('click', togglePause);
   $('btn-restart').addEventListener('click', startRace);
-  $('btn-quit').addEventListener('click', toMenu);
+  $('btn-quit').addEventListener('click', () => void leaveMp());
   $('btn-pause-options').addEventListener('click', () => {
     optionsReturn = 'pause';
     go('options');
@@ -848,7 +950,7 @@ function setupUi() {
     if (mp?.isHost) {
       mp.backToLobby();
       enterLobby();
-    } else toMenu();
+    } else void leaveMp();
   });
   // Mehrspieler
   $('btn-mp-create').addEventListener('click', createRoom);
@@ -856,7 +958,7 @@ function setupUi() {
   $('mp-code').addEventListener('keydown', (e) => {
     if ((e as KeyboardEvent).key === 'Enter') joinRoom();
   });
-  $('btn-lobby-leave').addEventListener('click', toMenu);
+  $('btn-lobby-leave').addEventListener('click', () => void leaveMp());
   $('btn-lobby-animal').addEventListener('click', () => go('animal'));
   $('btn-lobby-ready').addEventListener('click', () => {
     if (!mp) return;

@@ -105,6 +105,16 @@ export class ClientRaceSync {
     this.offsets = sim.animals.map(() => ({ x: 0, z: 0 }));
   }
 
+  /**
+   * Neuer Gastgeber (Gastgeber-Wechsel): Er kennt unsere bisherigen Eingaben nicht. Darum alles
+   * Unbestätigte verwerfen und auf seinen ersten Spielzustand warten.
+   */
+  resetForNewHost() {
+    this.history.length = 0;
+    this.pending = [];
+    this.synced = false;
+  }
+
   onSnapshot(s: Snapshot, ack: number, ev: SimEvent[]) {
     this.pending.push({ s, ack, ev });
   }

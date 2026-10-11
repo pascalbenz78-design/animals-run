@@ -18,7 +18,13 @@ export function renderLobby(mp: Multiplayer) {
       const animal = p.animal ? `${getAnimal(p.animal).icon} ${getAnimal(p.animal).name}` : `<i>${T.mp.choosing}</i>`;
       const role = p.host ? ` <small>(${T.mp.host})</small>` : '';
       const me = p.id === mp.myId ? ` <small>(${T.mp.you})</small>` : '';
-      const ready = p.host ? '' : p.ready ? `<td class="ok">✓ ${T.mp.ready}</td>` : `<td class="wait">${T.mp.notReady}</td>`;
+      const ready = !p.connected
+        ? `<td class="wait">${T.mp.disconnected}</td>`
+        : p.host
+          ? ''
+          : p.ready
+            ? `<td class="ok">✓ ${T.mp.ready}</td>`
+            : `<td class="wait">${T.mp.notReady}</td>`;
       const ping = p.host ? '' : p.ping >= 0 ? `${p.ping} ms` : '';
       return `<tr class="${p.id === mp.myId ? 'me' : ''}"><td><b>${escapeHtml(p.name)}</b>${role}${me}</td><td>${animal}</td>${ready || '<td></td>'}<td class="mono">${ping}</td></tr>`;
     })

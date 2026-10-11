@@ -16,6 +16,8 @@ export interface PlayerInfo {
   ping: number;
   host: boolean;
   connected: boolean;
+  /** Kennzeichen des Geräts (für den Wiedereinstieg, auch nach einem Gastgeber-Wechsel) */
+  tk?: string;
 }
 
 export interface LobbyState {
@@ -27,6 +29,8 @@ export interface LobbyState {
   players: PlayerInfo[];
   /** Läuft gerade ein Rennen? */
   racing: boolean;
+  /** Gastgeber-Generation (steigt bei jedem Gastgeber-Wechsel) */
+  gen: number;
 }
 
 export interface CupInfo {
@@ -50,7 +54,16 @@ export interface RaceSetup {
 }
 
 export type Msg =
-  | { t: 'hello'; name: string; token: string; version: number }
+  | {
+      t: 'hello';
+      name: string;
+      token: string;
+      version: number;
+      /** Nach einem Gastgeber-Wechsel: bisherige Spieler-ID */
+      prevId?: string;
+      /** Das Rennen läuft auf diesem Gerät schon (nur neu verbinden, nicht neu aufbauen) */
+      resume?: boolean;
+    }
   | { t: 'welcome'; playerId: string; lobby: LobbyState }
   | { t: 'reject'; reason: string }
   | { t: 'lobby'; lobby: LobbyState }
@@ -66,9 +79,13 @@ export type Msg =
   | { t: 'toLobby' }
   | { t: 'notice'; text: string }
   /** Mitspieler hat die Strecken-Info gelesen und ist bereit */
-  | { t: 'loaded' };
+  | { t: 'loaded' }
+  /** Neuer Gastgeber: das laufende Rennen geht weiter (nach einem Gastgeber-Wechsel) */
+  | { t: 'resume' }
+  /** An den alten Gastgeber: ein anderes Gerät hat übernommen (Generation `gen`) */
+  | { t: 'superseded'; gen: number };
 
-export const PROTOCOL_VERSION = 3;
+export const PROTOCOL_VERSION = 5;
 
 /** Eingabe als Bitfeld (klein für die Übertragung) */
 export function packInput(i: Input): number {
