@@ -26,7 +26,19 @@ import { TrackView, type Quality } from './render/trackView';
 import { Ceremony } from './render/ceremony';
 import { Intro, type IntroCue } from './render/intro';
 import { CUPS, getTrack, TRACKS } from './tracks';
-import { resetRecords, settings, submitCup, submitTime, trackRecords, updateSettings, type RecordEntry } from './storage';
+import {
+  recordKey,
+  removePlayer,
+  renameRecords,
+  resetRecords,
+  setPlayer,
+  settings,
+  submitCup,
+  submitTime,
+  trackRecords,
+  updateSettings,
+  type RecordEntry,
+} from './storage';
 import { Hud } from './ui/hud';
 import { renderLobby } from './ui/lobby';
 import {
@@ -70,6 +82,9 @@ interface Session {
   names: string[];
   net: NetRole | null;
   sound: GameAudio | null;
+  /** Schlüssel der Bestzeiten (Zeitfahren hat eine eigene Liste) */
+  recordKey: string;
+  solo: boolean;
 }
 
 const params = new URLSearchParams(location.search);
@@ -92,6 +107,8 @@ let choice = {
   track: settings().lastTrack,
   level: 'mittel' as AiLevel,
   mode: 'einzel' as 'einzel' | 'cup' | 'mp',
+  /** Einzelrennen ohne Gegner (Zeitfahren) */
+  solo: false,
   cup: CUPS[0].id,
 };
 let cup: CupState | null = null;
@@ -198,13 +215,17 @@ function buildSession(setup: RaceSetup, myAnimal: string | null, demo: boolean):
     sim.phase = 'running';
   }
   accumulator = 0;
+  const solo = setup.entrants.length === 1 && !setup.cup;
+  const key = recordKey(setup.trackId, solo);
   return {
+    recordKey: key,
+    solo,
     trackId: setup.trackId,
     sim,
     trackView,
     view,
     drivers,
-    hud: me >= 0 ? new Hud(sim, me, setup.trackId) : null,
+    hud: me >= 0 ? new Hud(sim, me, key) : null,
     me,
     demo,
     names,
@@ -301,7 +322,7 @@ let recordsBefore: { race: RecordEntry; lap: RecordEntry } = { race: null, lap: 
 
 function beginRace() {
   if (!session || !pendingRole) return;
-  recordsBefore = trackRecords(session.trackId);
+  recordsBefore = trackRecords(session.recordKey);
   clearTimeout(hostWaitTimer);
   pendingRole = null;
   state = 'race';
@@ -320,7 +341,7 @@ function startRace() {
   if (mp) return startMpRace();
   updateSettings({ lastAnimal: choice.animal, lastTrack: choice.track });
   const trackId = cup ? cup.tracks[cup.index] : choice.track;
-  const opponents = cup ? cup.roster : pickOpponents([choice.animal]);
+  const opponents = cup ? cup.roster : choice.solo ? [] : pickOpponents([choice.animal]);
   const seed = Math.floor(Math.random() * 1e6);
   startFromSetup({ trackId, laps: RACE.laps, seed, entrants: makeEntrants([choice.animal], opponents, choice.level), humans: [], cup: cupInfo(cup) }, 'local');
 }
@@ -387,17 +408,30 @@ function finishRace() {
   state = 'results';
   const s = session;
   const me = s.sim.animals[s.me];
-  const isRecord = me.finished ? submitTime(s.trackId, me.animalId, me.finishTime, me.bestLap) : false;
+  const player = settings().playerName;
+  const isRecord = me.finished ? submitTime(s.recordKey, me.animalId, me.finishTime, me.bestLap, player) : false;
+  // Neue Runden-Bestzeit in diesem Rennen? (wurde schon während des Rennens gespeichert)
+  const lapRecord = isFinite(me.bestLap) && me.bestLap >= 10 && (!recordsBefore.lap || me.bestLap < recordsBefore.lap.time);
   const results = s.sim.results();
   buildResults(results, s.names, s.me, isRecord);
   // Bestzeiten: Rekord vor dem Rennen, eigene Zeit, Abstand
   const fastest = results.filter((r) => isFinite(r.bestLap)).sort((a, b) => a.bestLap - b.bestLap)[0];
-  buildRaceRecords(
-    getTrack(s.trackId).name,
-    recordsBefore,
-    { race: me.finished ? me.finishTime : null, lap: isFinite(me.bestLap) ? me.bestLap : null },
-    fastest ? { name: s.names[fastest.animal], time: fastest.bestLap } : null,
-  );
+  const showRecords = (savedFor: string | null) =>
+    buildRaceRecords(
+      getTrack(s.trackId).name + (s.solo ? ` · ${T.records.solo}` : ''),
+      recordsBefore,
+      { race: me.finished ? me.finishTime : null, lap: isFinite(me.bestLap) ? me.bestLap : null },
+      fastest && !s.solo ? { name: s.names[fastest.animal], time: fastest.bestLap } : null,
+      savedFor,
+      async () => {
+        // «Nicht du? Ändern»: Namen wählen und bei den neuen Rekorden dieses Rennens eintragen
+        const name = await pickPlayer();
+        if (name === null) return;
+        renameRecords(s.recordKey, isRecord ? me.finishTime : null, lapRecord ? me.bestLap : null, name);
+        showRecords(name);
+      },
+    );
+  showRecords(isRecord || lapRecord ? player : null);
   const role = s.net?.role ?? 'local';
   if (role !== 'client' && cup) {
     // Punkte verteilen: 15 – 12 – 10 – 8 – 6 – 4 – 2 – 1
@@ -584,6 +618,16 @@ function go(screen: ScreenName) {
       choice.level,
       (v) => (choice.level = v),
     );
+    // Zeitfahren nur im Einzelrennen; dann gibt es keine Computergegner-Stärke
+    const oppRow = () => {
+      $('opp-row').classList.toggle('hidden', choice.mode === 'cup');
+      $('difficulty-row').classList.toggle('hidden', choice.mode !== 'cup' && choice.solo);
+    };
+    segmented($('opponents'), [['mit', T.menu.oppWith], ['solo', T.menu.oppSolo]], choice.solo ? 'solo' : 'mit', (v) => {
+      choice.solo = v === 'solo';
+      oppRow();
+    });
+    oppRow();
   }
   if (screen === 'options') buildOptions();
   if (screen === 'help') buildHelp();
@@ -593,6 +637,7 @@ function go(screen: ScreenName) {
   }
   if (screen === 'lobby' && mp) renderLobby(mp);
   if (screen === 'records') buildRecordsScreen();
+  if (screen === 'main') updatePlayerChip();
   showScreen(screen);
   screenNow = screen;
   if (state === 'menu' && screen !== 'title') {
@@ -879,8 +924,69 @@ function makeMultiplayer(): Multiplayer {
 function playerName(): string {
   const raw = ($('mp-name') as HTMLInputElement).value.trim().slice(0, 14);
   const name = raw || 'Spieler';
-  updateSettings({ playerName: raw });
+  if (raw) setPlayer(raw);
   return name;
+}
+
+// ---------------------------------------------------------------------------
+// Wer spielt?
+
+function updatePlayerChip() {
+  const n = settings().playerName;
+  $('player-label').textContent = n || T.players.who;
+  $('btn-player').classList.toggle('empty', !n);
+}
+
+/** Namen wählen oder neu eintragen. Gibt den Namen zurück (null = abgebrochen). */
+function pickPlayer(): Promise<string | null> {
+  return new Promise((resolve) => {
+    const box = $('player-picker');
+    const chips = $('player-chips');
+    const input = $('player-new') as HTMLInputElement;
+    input.placeholder = T.players.placeholder;
+    input.value = '';
+    const done = (name: string | null) => {
+      box.classList.add('hidden');
+      $('player-add').onclick = $('player-close').onclick = null;
+      input.onkeydown = null;
+      if (name !== null) setPlayer(name);
+      updatePlayerChip();
+      resolve(name === null ? null : name.trim().slice(0, 14));
+    };
+    const render = () => {
+      const s = settings();
+      chips.innerHTML = '';
+      for (const n of s.players) {
+        const wrap = document.createElement('span');
+        wrap.className = 'pchip';
+        const b = document.createElement('button');
+        b.textContent = n;
+        b.classList.toggle('on', n === s.playerName);
+        b.onclick = () => done(n);
+        const x = document.createElement('button');
+        x.className = 'x';
+        x.textContent = '✕';
+        x.title = T.players.remove;
+        x.onclick = () => {
+          removePlayer(n);
+          render();
+        };
+        wrap.append(b, x);
+        chips.appendChild(wrap);
+      }
+    };
+    render();
+    const add = () => {
+      const n = input.value.trim();
+      if (n) done(n);
+    };
+    $('player-add').onclick = add;
+    input.onkeydown = (e) => {
+      if (e.key === 'Enter') add();
+    };
+    $('player-close').onclick = () => done(null);
+    box.classList.remove('hidden');
+  });
 }
 
 function mpStatus(text: string, ok = false) {
@@ -974,6 +1080,7 @@ function setupUi() {
     if ((e as KeyboardEvent).key === 'Enter') joinRoom();
   });
   $('btn-lobby-leave').addEventListener('click', () => void leaveMp());
+  $('btn-player').addEventListener('click', () => void pickPlayer());
   $('btn-records-reset').addEventListener('click', async () => {
     if (await askConfirm(T.records.resetConfirm, T.records.resetYes, T.records.resetNo)) {
       resetRecords();

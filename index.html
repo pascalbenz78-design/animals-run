@@ -38,6 +38,7 @@
       <!-- Hauptmenü -->
       <section id="scr-main" class="screen hidden">
         <div class="logo small"><span class="logo-a">Animals</span><span class="logo-b">Run</span></div>
+        <button class="btn player-chip" id="btn-player">👤 <span id="player-label"></span> ▾</button>
         <div class="menu-col">
           <button class="btn big" id="btn-single" data-t="menu.single"></button>
           <button class="btn big cup" id="btn-cup" data-t="menu.cup"></button>
@@ -70,7 +71,11 @@
       <section id="scr-track" class="screen hidden">
         <h2 id="track-title" data-t="menu.chooseTrack"></h2>
         <div id="track-cards" class="cards"></div>
-        <div class="row center">
+        <div class="row center" id="opp-row">
+          <span data-t="menu.opponents"></span>
+          <div id="opponents" class="seg"></div>
+        </div>
+        <div class="row center" id="difficulty-row">
           <span data-t="menu.difficulty"></span>
           <div id="difficulty" class="seg"></div>
         </div>
@@ -143,6 +148,7 @@
       <!-- Bestzeiten -->
       <section id="scr-records" class="screen hidden">
         <h2 data-t="records.title"></h2>
+        <div id="records-mode" class="seg"></div>
         <div class="panel records-panel"><table id="records-table"></table><table id="records-cups"></table><p class="note" data-t="records.deviceNote"></p></div>
         <div class="row">
           <button class="btn" data-go="main" data-t="menu.back"></button>
@@ -249,6 +255,18 @@
       </section>
 
       <div id="notice"></div>
+      <div id="player-picker" class="overlay hidden">
+        <div class="panel picker-box">
+          <h3 data-t="players.who"></h3>
+          <p class="note" data-t="players.hint"></p>
+          <div id="player-chips" class="chips"></div>
+          <div class="add-row">
+            <input id="player-new" class="mp-input" maxlength="14" autocomplete="off" />
+            <button class="btn" id="player-add" data-t="players.add"></button>
+          </div>
+          <button class="btn" id="player-close" data-t="players.close"></button>
+        </div>
+      </div>
       <div id="confirm" class="hidden">
         <div class="panel confirm-box">
           <p id="confirm-text"></p>

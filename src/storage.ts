@@ -20,13 +20,15 @@ export interface Settings {
   muted: boolean;
   /** Intro beim Start zeigen */
   intro: boolean;
+  /** Bekannte Spielernamen auf diesem Gerät (für «Wer spielt?») */
+  players: string[];
 }
 
 export interface SaveData {
   settings: Settings;
-  /** Bestzeiten: Schlüssel «strecke» → Zeit und Tier */
-  bestTimes: Record<string, { time: number; animalId: string }>;
-  bestLaps: Record<string, { time: number; animalId: string }>;
+  /** Bestzeiten: Schlüssel «strecke» (mit Gegnern) bzw. «strecke#solo» (Zeitfahren) → Zeit, Tier, Name */
+  bestTimes: Record<string, { time: number; animalId: string; name?: string }>;
+  bestLaps: Record<string, { time: number; animalId: string; name?: string }>;
   /** Bester Schlussrang je Cup */
   cupBest: Record<string, { place: number; animalId: string }>;
 }
@@ -38,7 +40,7 @@ function defaultQuality(): Quality {
 
 function defaults(): SaveData {
   return {
-    settings: { quality: defaultQuality(), autoRun: true, controlHints: true, touchSteer: 'stick', lastAnimal: 'lenni', lastTrack: 'bauernhof', playerName: '', musicVolume: 0.6, sfxVolume: 0.8, muted: false, intro: true },
+    settings: { quality: defaultQuality(), autoRun: true, controlHints: true, touchSteer: 'stick', lastAnimal: 'lenni', lastTrack: 'bauernhof', playerName: '', musicVolume: 0.6, sfxVolume: 0.8, muted: false, intro: true, players: [] },
     bestTimes: {},
     bestLaps: {},
     cupBest: {},
@@ -51,7 +53,7 @@ let cache: SaveData | null = null;
 const MIN_LAP = 10;
 const MIN_RACE = 30;
 
-function plausible(map: Record<string, { time: number; animalId: string }>, min: number) {
+function plausible(map: Record<string, { time: number; animalId: string; name?: string }>, min: number) {
   for (const k of Object.keys(map)) if (!(map[k]?.time >= min)) delete map[k];
   return map;
 }
@@ -69,6 +71,10 @@ export function load(): SaveData {
         bestLaps: plausible(p.bestLaps ?? {}, MIN_LAP),
         cupBest: p.cupBest ?? {},
       };
+      // Bisheriger Mehrspieler-Name kommt in die Liste «Wer spielt?»
+      const s = cache.settings;
+      if (!Array.isArray(s.players)) s.players = [];
+      if (s.playerName && !s.players.includes(s.playerName)) s.players.push(s.playerName);
       return cache;
     }
   } catch {
@@ -96,7 +102,36 @@ export function updateSettings(p: Partial<Settings>) {
   save();
 }
 
-export type RecordEntry = { time: number; animalId: string } | null;
+export type RecordEntry = { time: number; animalId: string; name?: string } | null;
+
+/** Schlüssel der Bestzeiten: Zeitfahren (allein) hat eine eigene Liste */
+export function recordKey(trackId: string, solo: boolean): string {
+  return solo ? trackId + '#solo' : trackId;
+}
+
+/** Name nachträglich setzen («Nicht du? Ändern») – nur bei den Rekorden mit genau dieser Zeit */
+export function renameRecords(key: string, raceTime: number | null, lapTime: number | null, name: string) {
+  const d = load();
+  if (raceTime !== null && d.bestTimes[key]?.time === raceTime) d.bestTimes[key].name = name || undefined;
+  if (lapTime !== null && d.bestLaps[key]?.time === lapTime) d.bestLaps[key].name = name || undefined;
+  save();
+}
+
+/** Spielername wählen (und in die Liste aufnehmen) */
+export function setPlayer(name: string) {
+  const s = load().settings;
+  const n = name.trim().slice(0, 14);
+  s.playerName = n;
+  if (n && !s.players.includes(n)) s.players.push(n);
+  save();
+}
+
+export function removePlayer(name: string) {
+  const s = load().settings;
+  s.players = s.players.filter((p) => p !== name);
+  if (s.playerName === name) s.playerName = '';
+  save();
+}
 
 /** Rekorde einer Strecke (ganzes Rennen und beste Runde) */
 export function trackRecords(trackId: string): { race: RecordEntry; lap: RecordEntry } {
@@ -119,12 +154,12 @@ export function bestLap(trackId: string): number | null {
 }
 
 /** Rundenzeit sofort eintragen. Gibt die bisherige Bestzeit zurück und ob es eine neue ist. */
-export function submitLap(trackId: string, animalId: string, time: number): { previous: number | null; isNew: boolean } {
+export function submitLap(trackId: string, animalId: string, time: number, name = ''): { previous: number | null; isNew: boolean } {
   const d = load();
   const previous = d.bestLaps[trackId]?.time ?? null;
   const isNew = time >= MIN_LAP && (previous === null || time < previous);
   if (isNew) {
-    d.bestLaps[trackId] = { time, animalId };
+    d.bestLaps[trackId] = { time, animalId, name: name || undefined };
     save();
   }
   return { previous, isNew };
@@ -141,16 +176,16 @@ export function submitCup(cupId: string, animalId: string, place: number): boole
 }
 
 /** Bestzeit eintragen; gibt true zurück, wenn es eine neue Bestzeit ist. */
-export function submitTime(trackId: string, animalId: string, time: number, bestLap: number): boolean {
+export function submitTime(trackId: string, animalId: string, time: number, bestLap: number, name = ''): boolean {
   const d = load();
   let isNew = false;
   const prev = d.bestTimes[trackId];
   if (time >= MIN_RACE && (!prev || time < prev.time)) {
-    d.bestTimes[trackId] = { time, animalId };
+    d.bestTimes[trackId] = { time, animalId, name: name || undefined };
     isNew = true;
   }
   const pl = d.bestLaps[trackId];
-  if (isFinite(bestLap) && bestLap >= MIN_LAP && (!pl || bestLap < pl.time)) d.bestLaps[trackId] = { time: bestLap, animalId };
+  if (isFinite(bestLap) && bestLap >= MIN_LAP && (!pl || bestLap < pl.time)) d.bestLaps[trackId] = { time: bestLap, animalId, name: name || undefined };
   save();
   return isNew;
 }

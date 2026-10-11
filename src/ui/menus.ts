@@ -123,11 +123,12 @@ export function buildTrackCards(selected: string, onSelect: (id: string) => void
     const card = document.createElement('button');
     card.className = 'card' + (t.id === selected ? ' sel' : '');
     const b = best[t.id];
+    const solo = best[t.id + '#solo'];
     card.innerHTML = `
       <h3>${i + 1}. ${t.name}</h3>
       <div class="species">${t.subtitle}</div>
       <div class="swatch" style="background: linear-gradient(${hex(t.theme.skyTop)} 0 55%, ${hex(t.theme.ground)} 55% 100%)">${TRACK_EMOJI[t.id] ?? ''}</div>
-      <div class="desc">${T.bestTime}: ${b ? formatTime(b.time) : '–'}</div>`;
+      <div class="desc">${T.bestTime}: ${b ? formatTime(b.time) : '–'}${solo ? ` · ${T.records.soloShort} ${formatTime(solo.time)}` : ''}</div>`;
     card.addEventListener('click', () => {
       box.querySelectorAll('.card').forEach((c) => c.classList.remove('sel'));
       card.classList.add('sel');
@@ -220,14 +221,22 @@ function diffText(d: number): string {
  * Bestzeiten-Box nach dem Rennen: Rekord (vor diesem Rennen), eigene Zeit und Abstand –
  * für das ganze Rennen und die beste Runde. Dazu die schnellste Runde dieses Rennens.
  */
+/** «Anna · Furiel» bzw. nur «Furiel» (ältere Bestzeiten ohne Namen) */
+function holder(r: { animalId: string; name?: string }): string {
+  return (r.name ? r.name + ' · ' : '') + getAnimal(r.animalId).name;
+}
+
 export function buildRaceRecords(
   trackName: string,
   before: { race: RecordEntry; lap: RecordEntry },
   mine: { race: number | null; lap: number | null },
   fastest: { name: string; time: number } | null,
+  /** Neuer Rekord in diesem Rennen: gespeichert für diesen Namen ('' = ohne Namen); null = kein neuer Rekord */
+  savedFor: string | null,
+  onChangeName: () => void,
 ) {
   const row = (label: string, rec: RecordEntry, me: number | null) => {
-    const recText = rec ? `${formatTime(rec.time)} <small>(${getAnimal(rec.animalId).name})</small>` : T.records.none;
+    const recText = rec ? `${formatTime(rec.time)} <small>(${holder(rec)})</small>` : T.records.none;
     const done = me !== null && isFinite(me);
     const meText = done ? formatTime(me) : `<small>${T.records.notFinished}</small>`;
     let diff = '';
@@ -244,17 +253,31 @@ export function buildRaceRecords(
     row(T.records.race, before.race, mine.race) +
     row(T.records.lap, before.lap, mine.lap) +
     `</table>` +
-    (fastest ? `<p class="note">⏱️ ${T.records.fastestLap}: <b>${fastest.name}</b> ${formatTime(fastest.time)}</p>` : '');
+    (fastest ? `<p class="note">⏱️ ${T.records.fastestLap}: <b>${fastest.name}</b> ${formatTime(fastest.time)}</p>` : '') +
+    (savedFor === null
+      ? ''
+      : savedFor
+        ? `<p class="rec-holder">🏆 ${T.records.savedFor} <b>${savedFor}</b><button id="btn-rec-name">${T.records.notYou}</button></p>`
+        : `<p class="rec-holder">🏆 ${T.records.whoWasIt}<button id="btn-rec-name">${T.records.enterName}</button></p>`);
+  document.getElementById('btn-rec-name')?.addEventListener('click', onChangeName);
 }
 
 /** Bestzeiten-Bildschirm: alle Strecken und Cups */
+let recordsSolo = false;
+
 export function buildRecordsScreen() {
   const d = load();
+  segmented($('records-mode'), [['mit', T.records.withOpp], ['solo', T.records.solo]], recordsSolo ? 'solo' : 'mit', (v) => {
+    recordsSolo = v === 'solo';
+    buildRecordsScreen();
+  });
+  const key = (id: string) => (recordsSolo ? id + '#solo' : id);
   const cell = (r: RecordEntry | undefined) =>
-    r ? `${formatTime(r.time)} <small>${getAnimal(r.animalId).icon} ${getAnimal(r.animalId).name}</small>` : T.records.none;
+    r ? `${formatTime(r.time)} <small>${r.name ? `<b>${r.name}</b> · ` : ''}${getAnimal(r.animalId).icon} ${getAnimal(r.animalId).name}</small>` : T.records.none;
   $('records-table').innerHTML =
     `<tr><th>${T.records.track}</th><th>${T.records.race}</th><th>${T.records.lap}</th></tr>` +
-    TRACKS.map((t) => `<tr><td>${t.name}</td><td class="mono">${cell(d.bestTimes[t.id])}</td><td class="mono">${cell(d.bestLaps[t.id])}</td></tr>`).join('');
+    TRACKS.map((t) => `<tr><td>${t.name}</td><td class="mono">${cell(d.bestTimes[key(t.id)])}</td><td class="mono">${cell(d.bestLaps[key(t.id)])}</td></tr>`).join('');
+  $('records-cups').classList.toggle('hidden', recordsSolo);
   $('records-cups').innerHTML =
     `<tr><th colspan="2">${T.records.cups}</th></tr>` +
     CUPS.map((c) => {

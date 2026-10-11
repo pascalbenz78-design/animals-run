@@ -5,7 +5,7 @@ import { getAnimal } from '../animals/animals';
 import type { RaceSim } from '../game/simulation';
 import { wrapAngle } from '../game/track';
 import { ITEM_IDS, type SimEvent } from '../game/types';
-import { submitLap } from '../storage';
+import { settings, submitLap } from '../storage';
 
 const $ = <E extends HTMLElement>(id: string) => document.getElementById(id) as E;
 
@@ -42,9 +42,13 @@ export class Hud {
   constructor(
     private readonly sim: RaceSim,
     private readonly me: number,
+    /** Schlüssel der Bestzeiten (Strecke, beim Zeitfahren eigene Liste) */
     private readonly trackId: string,
   ) {
     this.buildMap();
+    // «/8» bzw. «/1» beim Zeitfahren
+    const total = document.querySelector('.place small');
+    if (total) total.textContent = '/' + sim.animals.length;
     this.countdown.textContent = '';
     this.toastEl.className = '';
     this.warn.textContent = '';
@@ -83,7 +87,7 @@ export class Hud {
   private showLapTime(lapNumber: number) {
     const a = this.sim.animals[this.me];
     const time = a.lastLap;
-    const { previous, isNew } = submitLap(this.trackId, a.animalId, time);
+    const { previous, isNew } = submitLap(this.trackId, a.animalId, time, settings().playerName);
     let second: string;
     if (previous === null) second = `<div class="new">${T.hud.firstRecord}</div>`;
     else if (isNew)
