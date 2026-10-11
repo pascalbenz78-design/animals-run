@@ -10,47 +10,131 @@ const A = audio;
 
 // ---------------------------------------------------------------- Tierstimmen
 
-export function voice(species: Species, vol = 1, pan = 0, kind: 'start' | 'jubel' | 'kraft' = 'start') {
+/** Stimmlage je Tier (kräftige Tiere tiefer, kleine höher) */
+const VOICE_PITCH: Record<string, number> = { lenni: 1, furiel: 1.04, ray: 0.96, athena: 0.86, helja: 1.1, aramis: 1, simba: 0.9, shadow: 1.08, tira: 1, gonzi: 1 };
+
+export function voicePitch(animalId: string): number {
+  return VOICE_PITCH[animalId] ?? 1;
+}
+
+/**
+ * Tierstimme. `pitch` verschiebt die Tonhöhe (z. B. Pony höher als Pferd), damit nicht alle
+ * Tiere einer Art gleich klingen. Die Laute sind Formant-Synthese (Stimmquelle + Resonanzen).
+ */
+export function voice(species: Species, vol = 1, pan = 0, kind: 'start' | 'jubel' | 'kraft' = 'start', pitch = 1) {
   if (!A.ready) return;
   const t = A.now;
+  const P = (pts: [number, number][]): [number, number][] => pts.map(([k, f]) => [k, f * pitch]);
   switch (species) {
     case 'pferd': {
-      // Wiehern: steigt an, zittert und fällt ab
-      const o = A.tone(620, 1.1, { type: 'sawtooth', vol: 0.11 * vol, attack: 0.05, release: 0.4, vibrato: 0.05, filter: 2400, pan, reverb: 0.4 });
-      o?.frequency.setValueAtTime(620, t);
-      o?.frequency.linearRampToValueAtTime(1150, t + 0.25);
-      o?.frequency.linearRampToValueAtTime(980, t + 0.6);
-      o?.frequency.linearRampToValueAtTime(420, t + 1.1);
-      A.noise(0.4, { vol: 0.05 * vol, freq: 2500, q: 2, at: t + 0.7, pan });
+      // Wiehern: hoher, zitternder Schrei, der in Stufen abfällt und mit Schnauben endet
+      const dur = kind === 'start' ? 1.2 : 1.6;
+      A.vocal({
+        dur,
+        pitch: P([[0, 820], [0.08, 1250], [0.25, 1180], [0.45, 980], [0.7, 720], [1, 430]]),
+        formants: [
+          { f: [[0, 1100], [0.3, 1000], [1, 700]], q: 4, gain: 2.2 },
+          { f: [[0, 2300], [0.5, 2000], [1, 1500]], q: 6, gain: 1.6 },
+          { f: [[0, 3400], [1, 3000]], q: 8, gain: 0.8 },
+        ],
+        amp: [[0.04, 0.9], [0.2, 1], [0.6, 0.8], [0.9, 0.45], [1, 0]],
+        vol: 0.27 * vol,
+        trill: { rate: 13, depth: 0.045 },
+        tremolo: { rate: 11, depth: 0.55 },
+        breath: 0.25,
+        at: t,
+        pan,
+        reverb: 0.35,
+      });
+      // Schnauben am Schluss (Luft durch die Nüstern)
+      A.noise(0.35, { vol: 0.14 * vol, freq: 700, q: 0.7, type: 'bandpass', at: t + dur - 0.05, attack: 0.03, pan });
+      A.noise(0.25, { vol: 0.08 * vol, freq: 2200, q: 1.5, at: t + dur, pan });
       break;
     }
     case 'katze': {
-      // «Miau»: Formant über einen Bandpass, Tonhöhe rauf und runter
-      const o = A.tone(480, 0.7, { type: 'sawtooth', vol: 0.12 * vol, attack: 0.06, release: 0.25, filter: 1800, pan, reverb: 0.3 });
-      o?.frequency.setValueAtTime(480, t);
-      o?.frequency.linearRampToValueAtTime(kind === 'kraft' ? 1100 : 820, t + 0.25);
-      o?.frequency.linearRampToValueAtTime(520, t + 0.7);
+      // «Mi-a-u»: Vokal gleitet von i über a zu u, Tonhöhe steigt und fällt
+      const long = kind === 'kraft';
+      A.vocal({
+        dur: long ? 1.1 : 0.8,
+        pitch: P([[0, 560], [0.3, long ? 900 : 760], [0.6, long ? 820 : 680], [1, 470]]),
+        formants: [
+          { f: [[0, 450], [0.35, 1050], [0.7, 900], [1, 520]], q: 5, gain: 2.4 },
+          { f: [[0, 2500], [0.35, 1700], [0.7, 1300], [1, 900]], q: 7, gain: 1.8 },
+          { f: [[0, 3500], [1, 3000]], q: 9, gain: 0.7 },
+        ],
+        amp: [[0.08, 0.6], [0.3, 1], [0.75, 0.75], [1, 0]],
+        vol: 0.3 * vol,
+        trill: { rate: 6, depth: 0.012 },
+        breath: 0.12,
+        at: t,
+        pan,
+        reverb: 0.25,
+      });
       break;
     }
     case 'hund': {
       if (kind === 'jubel') {
-        // Husky heult
-        const o = A.tone(420, 1.6, { type: 'triangle', vol: 0.14 * vol, attack: 0.2, release: 0.5, vibrato: 0.02, pan, reverb: 0.6 });
-        o?.frequency.setValueAtTime(420, t);
-        o?.frequency.linearRampToValueAtTime(720, t + 0.6);
-        o?.frequency.linearRampToValueAtTime(560, t + 1.6);
+        // Husky heult: «a-wuuu», langsam steigend, mit leichtem Vibrato
+        A.vocal({
+          dur: 2.2,
+          pitch: P([[0, 430], [0.25, 690], [0.55, 760], [0.85, 640], [1, 520]]),
+          formants: [
+            { f: [[0, 800], [0.3, 650], [1, 380]], q: 5, gain: 2.6 },
+            { f: [[0, 1300], [0.3, 1100], [1, 750]], q: 6, gain: 1.4 },
+            { f: [[0, 2600], [1, 2400]], q: 8, gain: 0.4 },
+          ],
+          amp: [[0.15, 0.7], [0.4, 1], [0.85, 0.8], [1, 0]],
+          vol: 0.27 * vol,
+          trill: { rate: 5, depth: 0.02 },
+          breath: 0.18,
+          at: t,
+          pan,
+          reverb: 0.6,
+        });
       } else {
-        for (const d of [0, 0.22]) {
-          A.noise(0.12, { vol: 0.12 * vol, freq: 900, q: 1.2, at: t + d, pan });
-          A.tone(320, 0.14, { type: 'square', vol: 0.08 * vol, slideTo: 180, filter: 1400, at: t + d, pan });
+        // Bellen: zwei kurze, kräftige «Wuff» mit Luftstoss
+        for (const d of [0, 0.24]) {
+          A.vocal({
+            dur: 0.17,
+            pitch: P([[0, 380], [0.25, 430], [1, 240]]),
+            formants: [
+              { f: [[0, 750], [1, 550]], q: 3, gain: 3 },
+              { f: [[0, 1400], [1, 1100]], q: 4, gain: 1.6 },
+              { f: [[0, 2700], [1, 2400]], q: 6, gain: 0.5 },
+            ],
+            amp: [[0.06, 1], [0.4, 0.7], [1, 0]],
+            vol: 0.28 * vol,
+            breath: 0.6,
+            at: t + d,
+            pan,
+            reverb: 0.2,
+          });
         }
       }
       break;
     }
-    case 'hamster':
-      // Fiepen
-      for (const d of [0, 0.13, 0.26]) A.tone(2300 + d * 900, 0.09, { type: 'sine', vol: 0.09 * vol, slideTo: 3100, at: t + d, pan });
+    case 'hamster': {
+      // Fiepen: kurze, sehr hohe Quietscher mit unregelmässigem Abstand
+      const times = kind === 'start' ? [0, 0.11] : [0, 0.1, 0.24, 0.31];
+      times.forEach((d, i) => {
+        const base = (2600 + i * 180) * pitch;
+        A.vocal({
+          dur: 0.07 + (i % 2) * 0.03,
+          pitch: [[0, base], [0.5, base * 1.35], [1, base * 1.15]],
+          formants: [
+            { f: [[0, base * 1.1], [1, base * 1.3]], q: 3, gain: 2.5 },
+            { f: [[0, 6000], [1, 6500]], q: 4, gain: 0.8 },
+          ],
+          amp: [[0.15, 1], [0.7, 0.8], [1, 0]],
+          vol: 0.09 * vol,
+          type: 'triangle',
+          breath: 0.15,
+          at: t + d,
+          pan,
+        });
+      });
       break;
+    }
   }
 }
 

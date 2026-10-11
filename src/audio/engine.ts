@@ -156,6 +156,105 @@ export class AudioEngine {
     return osc;
   }
 
+  /**
+   * Stimme (Tierlaute): Stimmquelle (Sägezahn + Hauch) durch mehrere Resonanzfilter (Formanten),
+   * die den «Vokal» formen. Alle Verläufe als Punkte [Anteil der Dauer 0–1, Wert].
+   */
+  vocal(o: {
+    dur: number;
+    pitch: [number, number][];
+    formants: { f: [number, number][]; q: number; gain: number }[];
+    amp: [number, number][];
+    vol: number;
+    /** Schnelles Tonhöhen-Zittern (Wiehern), depth als Anteil der Tonhöhe */
+    trill?: { rate: number; depth: number };
+    /** Lautstärke-Pulsieren */
+    tremolo?: { rate: number; depth: number };
+    /** Anteil Hauch/Rauschen */
+    breath?: number;
+    type?: OscillatorType;
+    at?: number;
+    pan?: number;
+    reverb?: number;
+  }) {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    const t0 = o.at ?? ctx.currentTime;
+    const T = (k: number) => t0 + k * o.dur;
+    const end = t0 + o.dur;
+    // Quelle
+    const osc = ctx.createOscillator();
+    osc.type = o.type ?? 'sawtooth';
+    osc.frequency.setValueAtTime(o.pitch[0][1], t0);
+    for (const [k, f] of o.pitch.slice(1)) osc.frequency.linearRampToValueAtTime(f, T(k));
+    const src = ctx.createGain();
+    src.gain.value = 1;
+    osc.connect(src);
+    const stops: AudioScheduledSourceNode[] = [osc];
+    if (o.trill) {
+      const lfo = ctx.createOscillator();
+      const lg = ctx.createGain();
+      lfo.frequency.value = o.trill.rate;
+      const mean = o.pitch.reduce((s, p) => s + p[1], 0) / o.pitch.length;
+      lg.gain.value = mean * o.trill.depth;
+      lfo.connect(lg).connect(osc.frequency);
+      stops.push(lfo);
+    }
+    if (o.breath) {
+      const n = ctx.createBufferSource();
+      n.buffer = this.noiseBuf;
+      n.loop = true;
+      const ng = ctx.createGain();
+      ng.gain.value = o.breath;
+      n.connect(ng).connect(src);
+      stops.push(n);
+    }
+    // Formanten parallel
+    const sum = ctx.createGain();
+    for (const fm of o.formants) {
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.Q.value = fm.q;
+      bp.frequency.setValueAtTime(fm.f[0][1], t0);
+      for (const [k, f] of fm.f.slice(1)) bp.frequency.linearRampToValueAtTime(f, T(k));
+      const g = ctx.createGain();
+      g.gain.value = fm.gain;
+      src.connect(bp).connect(g).connect(sum);
+    }
+    // Lautstärkeverlauf (+ Pulsieren)
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0, t0);
+    for (const [k, v] of o.amp) env.gain.linearRampToValueAtTime(Math.max(0.0001, v * o.vol), T(k));
+    env.gain.linearRampToValueAtTime(0.0001, end);
+    let out: AudioNode = sum.connect(env);
+    if (o.tremolo) {
+      const tg = ctx.createGain();
+      tg.gain.value = 1 - o.tremolo.depth / 2;
+      const lfo = ctx.createOscillator();
+      const lg = ctx.createGain();
+      lfo.frequency.value = o.tremolo.rate;
+      lg.gain.value = o.tremolo.depth / 2;
+      lfo.connect(lg).connect(tg.gain);
+      out = out.connect(tg);
+      stops.push(lfo);
+    }
+    if (o.pan) {
+      const p = ctx.createStereoPanner();
+      p.pan.value = Math.max(-1, Math.min(1, o.pan));
+      out = out.connect(p);
+    }
+    out.connect(this.sfx);
+    if (o.reverb) {
+      const rg = ctx.createGain();
+      rg.gain.value = o.reverb;
+      out.connect(rg).connect(this.reverb);
+    }
+    for (const s of stops) {
+      s.start(t0);
+      s.stop(end + 0.05);
+    }
+  }
+
   /** Gefiltertes Rauschen (Schritte, Platschen, Wind, Schlagzeug) */
   noise(
     dur: number,

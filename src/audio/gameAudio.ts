@@ -8,7 +8,7 @@ import { wrapAngle } from '../game/track';
 import { ITEM_IDS, type SimEvent } from '../game/types';
 import { audio } from './engine';
 import { music } from './music';
-import { sfx, step, voice } from './sfx';
+import { sfx, step, voice, voicePitch } from './sfx';
 
 export class GameAudio {
   private lastStride: number[] = [];
@@ -48,7 +48,7 @@ export class GameAudio {
         break;
       case 'go':
         sfx.go();
-        if (this.me >= 0) voice(getAnimal(this.sim.animals[this.me].animalId).species, 0.8, 0, 'start');
+        if (this.me >= 0) voice(getAnimal(this.sim.animals[this.me].animalId).species, 0.8, 0, 'start', voicePitch(this.sim.animals[this.me].animalId));
         break;
       case 'jump':
         sfx.jump(mine ? 1 : w.vol * 0.5, w.pan);
@@ -71,7 +71,7 @@ export class GameAudio {
       case 'power':
         if (a) {
           sfx.power(a.power, w.vol, w.pan);
-          voice(getAnimal(a.animalId).species, w.vol * 0.9, w.pan, 'kraft');
+          voice(getAnimal(a.animalId).species, w.vol * 0.9, w.pan, 'kraft', voicePitch(a.animalId));
         }
         break;
       case 'item':
@@ -129,7 +129,7 @@ export class GameAudio {
       case 'finish':
         if (mine) {
           sfx.finish(this.sim.animals[this.me].place);
-          voice(getAnimal(this.sim.animals[this.me].animalId).species, 1, 0, 'jubel');
+          voice(getAnimal(this.sim.animals[this.me].animalId).species, 1, 0, 'jubel', voicePitch(this.sim.animals[this.me].animalId));
         }
         break;
     }

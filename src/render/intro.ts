@@ -8,7 +8,7 @@ import { ANIMALS, type AnimalDef } from '../animals/animals';
 import { AnimalModel } from '../animals/models';
 import { audio } from '../audio/engine';
 import { music } from '../audio/music';
-import { voice } from '../audio/sfx';
+import { voice, voicePitch } from '../audio/sfx';
 import { INTRO } from '../config/balance';
 import { mulberry32 } from '../game/rng';
 import { G, mesh, part } from './geo';
@@ -212,7 +212,7 @@ export class Intro {
         const r = this.runners[idx];
         r.hop = 0.001;
         this.cue({ type: 'feature', animal: r.def });
-        if (audio.ctx) voice(r.def.species, 0.9, 0, 'jubel');
+        if (audio.ctx) voice(r.def.species, 1, 0, 'jubel', voicePitch(r.def.id));
       }
       // Kamera bleibt beim Tier stehen und gleitet am Ende zum nächsten
       const frac = k - idx;
