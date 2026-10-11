@@ -189,7 +189,7 @@ export function buildHelp(tab: 'regeln' | 'tiere' | 'strecken' = 'regeln') {
   segmented($('help-tabs'), (['regeln', 'tiere', 'strecken'] as const).map((k) => [k, T.help.tabs[k]]), tab, (v) => buildHelp(v));
   const body = $('help-body');
   if (tab === 'regeln') {
-    body.innerHTML = T.help.rules.map(([h, txt]) => `<h3>${h}</h3><p>${txt}</p>`).join('');
+    body.innerHTML = T.help.rules.map(([h, txt]) => `<h3>${h}</h3>${txt.startsWith('<') ? txt : `<p>${txt}</p>`}`).join('');
   } else if (tab === 'tiere') {
     body.innerHTML = ANIMALS.map((a) => {
       const [strength, tip] = T.help.animals[a.id];

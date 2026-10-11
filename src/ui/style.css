@@ -1720,3 +1720,12 @@ td.wait {
   padding: 0 8px;
   min-width: 34px;
 }
+
+.help-list {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+.help-list li {
+  margin: 4px 0;
+  line-height: 1.35;
+}
