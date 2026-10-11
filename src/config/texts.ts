@@ -123,9 +123,9 @@ export const T = {
     whoWasIt: 'Wer ist gefahren?',
     enterName: 'Namen eintragen',
     reset: 'Bestzeiten löschen',
-    resetConfirm: 'Alle Bestzeiten und Cup-Ergebnisse auf diesem Gerät löschen?',
-    resetYes: 'Ja, löschen',
-    resetNo: 'Nein',
+    resetConfirm: 'Wirklich löschen? Alle Bestzeiten (mit Gegnern und allein) und Cup-Ergebnisse auf diesem Gerät gehen verloren.',
+    resetYes: 'Ja, wirklich löschen',
+    resetNo: 'Nein, behalten',
   },
   players: {
     who: 'Wer spielt?',
