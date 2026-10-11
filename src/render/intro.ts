@@ -212,7 +212,7 @@ export class Intro {
         const r = this.runners[idx];
         r.hop = 0.001;
         this.cue({ type: 'feature', animal: r.def });
-        if (audio.ctx) voice(r.def.species, 1, 0, 'jubel', voicePitch(r.def.id));
+        if (audio.ctx) voice(r.def.species, 1, 0, r.def.species === 'hund' ? 'klaeff' : 'jubel', voicePitch(r.def.id));
       }
       // Kamera bleibt beim Tier stehen und gleitet am Ende zum nächsten
       const frac = k - idx;

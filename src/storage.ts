@@ -9,6 +9,8 @@ export interface Settings {
   quality: Quality;
   autoRun: boolean;
   controlHints: boolean;
+  /** Lenken am Handy: Joystick oder zwei Tasten */
+  touchSteer: 'stick' | 'tasten';
   lastAnimal: string;
   lastTrack: string;
   /** Name im Mehrspieler */
@@ -36,7 +38,7 @@ function defaultQuality(): Quality {
 
 function defaults(): SaveData {
   return {
-    settings: { quality: defaultQuality(), autoRun: true, controlHints: true, lastAnimal: 'lenni', lastTrack: 'bauernhof', playerName: '', musicVolume: 0.6, sfxVolume: 0.8, muted: false, intro: true },
+    settings: { quality: defaultQuality(), autoRun: true, controlHints: true, touchSteer: 'stick', lastAnimal: 'lenni', lastTrack: 'bauernhof', playerName: '', musicVolume: 0.6, sfxVolume: 0.8, muted: false, intro: true },
     bestTimes: {},
     bestLaps: {},
     cupBest: {},

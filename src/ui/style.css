@@ -565,6 +565,57 @@ td.mono,
   background: rgba(63, 174, 73, 0.7);
   color: #fff;
 }
+/* Joystick (Lenken am Handy) */
+.tstick {
+  display: none;
+  position: relative;
+  pointer-events: auto;
+  touch-action: none;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  border: 3px solid rgba(43, 26, 14, 0.7);
+  background: radial-gradient(circle, rgba(255, 248, 232, 0.25) 0%, rgba(255, 248, 232, 0.5) 70%);
+  box-shadow: 0 4px 0 rgba(43, 26, 14, 0.45);
+}
+.tstick .tarrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 22px;
+  color: rgba(43, 26, 14, 0.55);
+  pointer-events: none;
+}
+.tstick .tarrow.l {
+  left: 10px;
+}
+.tstick .tarrow.r {
+  right: 10px;
+}
+.tknob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 66px;
+  height: 66px;
+  margin: -33px 0 0 -33px;
+  border-radius: 50%;
+  border: 3px solid rgba(43, 26, 14, 0.85);
+  background: rgba(255, 210, 63, 0.9);
+  box-shadow: 0 3px 0 rgba(43, 26, 14, 0.6);
+  pointer-events: none;
+  transition: transform 0.12s ease-out;
+}
+.tstick.pressed .tknob {
+  transition: none;
+}
+body.stick .tstick {
+  display: block;
+}
+body.stick #t-left,
+body.stick #t-right {
+  display: none;
+}
 .tbtn.pressed {
   transform: scale(0.92);
   background: rgba(255, 210, 63, 0.85);
@@ -637,6 +688,15 @@ body.autorun #t-run {
   }
   .swatch {
     height: 40px;
+  }
+  .tstick {
+    width: 128px;
+    height: 128px;
+  }
+  .tknob {
+    width: 58px;
+    height: 58px;
+    margin: -29px 0 0 -29px;
   }
   .tbtn {
     width: 80px;

@@ -279,3 +279,6 @@ export const INTRO = {
   spacing: 2.8,
   archX: 20,
 };
+
+/** Joystick am Handy: toter Bereich in der Mitte, ab welchem Ausschlag voll gelenkt wird, Weg des Knopfs (Anteil des Radius) */
+export const STICK = { deadzone: 0.12, full: 0.8, travel: 0.6 };

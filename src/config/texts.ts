@@ -32,6 +32,8 @@ export const T = {
     qualityValues: { hoch: 'Hoch', mittel: 'Mittel', niedrig: 'Niedrig' },
     autoRun: 'Auto-Lauf (Tier läuft selbständig)',
     controlHints: 'Steuerungshilfe anzeigen',
+    steer: 'Lenken am Handy',
+    steerValues: { stick: 'Joystick', tasten: 'Tasten ◀ ▶' },
     musicVol: 'Lautstärke Musik',
     sfxVol: 'Lautstärke Effekte',
     mute: 'Stumm',
@@ -44,7 +46,7 @@ export const T = {
     rows: [
       ['Vorwärts laufen', 'Pfeil hoch oder W (mit Auto-Lauf automatisch)', 'Taste «Lauf» (mit Auto-Lauf automatisch)'],
       ['Bremsen (nur mit Auto-Lauf)', 'Pfeil runter oder S', 'Taste «Bremse»'],
-      ['Lenken', 'Pfeiltasten oder A / D', 'Tasten ◀ ▶'],
+      ['Lenken', 'Pfeiltasten oder A / D', 'Joystick links: wenig Ausschlag = sanft, ganz zur Seite = voll (in den Optionen auch Tasten ◀ ▶)'],
       ['Springen', 'Leertaste', 'Taste «Sprung»'],
       ['Superkraft', 'E oder Shift', 'Taste «Superkraft» (leuchtet, wenn bereit)'],
       ['Pause', 'Esc', 'Pause-Symbol oben'],

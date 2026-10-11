@@ -21,7 +21,7 @@ export function voicePitch(animalId: string): number {
  * Tierstimme. `pitch` verschiebt die Tonhöhe (z. B. Pony höher als Pferd), damit nicht alle
  * Tiere einer Art gleich klingen. Die Laute sind Formant-Synthese (Stimmquelle + Resonanzen).
  */
-export function voice(species: Species, vol = 1, pan = 0, kind: 'start' | 'jubel' | 'kraft' = 'start', pitch = 1) {
+export function voice(species: Species, vol = 1, pan = 0, kind: 'start' | 'jubel' | 'kraft' | 'klaeff' = 'start', pitch = 1) {
   if (!A.ready) return;
   const t = A.now;
   const P = (pts: [number, number][]): [number, number][] => pts.map(([k, f]) => [k, f * pitch]);
@@ -73,7 +73,29 @@ export function voice(species: Species, vol = 1, pan = 0, kind: 'start' | 'jubel
       break;
     }
     case 'hund': {
-      if (kind === 'jubel') {
+      if (kind === 'klaeff') {
+        // Kläffen: helle, schnelle Kläffer in unregelmässigem Rhythmus, der letzte etwas länger
+        const times = [0, 0.16, 0.3, 0.52, 0.66];
+        times.forEach((d, i) => {
+          const last = i === times.length - 1;
+          const f0 = (560 + (i % 2) * 70) * pitch;
+          A.vocal({
+            dur: last ? 0.2 : 0.12,
+            pitch: [[0, f0 * 0.9], [0.2, f0 * 1.15], [1, f0 * 0.7]],
+            formants: [
+              { f: [[0, 1000], [0.3, 1200], [1, 800]], q: 3, gain: 3 },
+              { f: [[0, 1900], [1, 1600]], q: 4, gain: 1.8 },
+              { f: [[0, 3200], [1, 2900]], q: 6, gain: 0.6 },
+            ],
+            amp: [[0.05, 1], [0.35, 0.75], [1, 0]],
+            vol: 0.26 * vol,
+            breath: 0.45,
+            at: t + d,
+            pan,
+            reverb: 0.25,
+          });
+        });
+      } else if (kind === 'jubel') {
         // Husky heult: «a-wuuu», langsam steigend, mit leichtem Vibrato
         A.vocal({
           dur: 2.2,

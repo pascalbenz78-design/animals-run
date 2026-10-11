@@ -2,6 +2,7 @@
  * Eingabe vom Menschen: Tastatur, Touch-Tasten und Gamepad werden zu einem Input-Objekt
  * zusammengeführt. Die Simulation sieht nur dieses Objekt.
  */
+import { STICK } from '../config/balance';
 import { emptyInput, type Input } from '../game/types';
 
 type Action = keyof Input;
@@ -29,6 +30,10 @@ export class InputManager {
   /** Wird beim allerersten Tastendruck/Touch ausgelöst (Browser-Regel für Ton). */
   onFirstInteraction: (() => void) | null = null;
   private gamepadPausePrev = false;
+  /** Joystick (Handy): seitlicher Ausschlag −1 … 1 */
+  private stickX = 0;
+  /** Sammelt den Ausschlag: Lenken nur in so vielen Takten, wie es dem Ausschlag entspricht */
+  private steerAcc = 0;
 
   constructor() {
     window.addEventListener('keydown', (e) => {
@@ -92,8 +97,67 @@ export class InputManager {
     el.addEventListener('contextmenu', (e) => e.preventDefault());
   }
 
+  /**
+   * Joystick binden: Der Knopf folgt dem Finger, der seitliche Ausschlag lenkt dosiert
+   * (wenig Ausschlag = sanft, voll = volle Lenkung).
+   */
+  bindStick(base: HTMLElement, knob: HTMLElement) {
+    let id = -1;
+    const move = (e: PointerEvent) => {
+      const r = base.getBoundingClientRect();
+      const R = r.width / 2;
+      let dx = e.clientX - (r.left + R);
+      let dy = e.clientY - (r.top + R);
+      const len = Math.hypot(dx, dy);
+      const max = R * STICK.travel;
+      if (len > max) {
+        dx *= max / len;
+        dy *= max / len;
+      }
+      knob.style.transform = `translate(${dx}px, ${dy}px)`;
+      this.stickX = dx / max;
+    };
+    const release = (e: PointerEvent) => {
+      if (e.pointerId !== id) return;
+      id = -1;
+      this.stickX = 0;
+      knob.style.transform = '';
+      base.classList.remove('pressed');
+    };
+    base.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      if (id !== -1) return;
+      id = e.pointerId;
+      try {
+        base.setPointerCapture(e.pointerId);
+      } catch {
+        // ohne Capture funktioniert es trotzdem, solange der Finger auf dem Joystick bleibt
+      }
+      base.classList.add('pressed');
+      move(e);
+    });
+    base.addEventListener('pointermove', (e) => {
+      if (e.pointerId === id) move(e);
+    });
+    base.addEventListener('pointerup', release);
+    base.addEventListener('pointercancel', release);
+    base.addEventListener('lostpointercapture', release);
+    base.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+
   sample(): Input {
     const inp = emptyInput();
+    // Joystick: Ausschlag in Lenk-Takte umrechnen (einmal pro Simulationsschritt)
+    const ax = Math.abs(this.stickX);
+    if (ax > STICK.deadzone) {
+      const k = Math.min(1, (ax - STICK.deadzone) / (STICK.full - STICK.deadzone));
+      this.steerAcc += k;
+      if (this.steerAcc >= 1) {
+        this.steerAcc -= 1;
+        if (this.stickX < 0) inp.links = true;
+        else inp.rechts = true;
+      }
+    } else this.steerAcc = 0;
     for (const code of this.keys) inp[KEYMAP[code]] = true;
     for (const k of Object.keys(inp) as Action[]) if (k !== 'vorwaerts' && this.touch[k]) inp[k] = true;
     this.pollGamepad(inp);

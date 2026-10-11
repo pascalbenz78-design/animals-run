@@ -592,6 +592,10 @@ function buildOptions() {
     input.autoRun = v === '1';
     applyBodyFlags();
   });
+  segmented($('opt-steer'), [['stick', T.options.steerValues.stick], ['tasten', T.options.steerValues.tasten]], s.touchSteer, (v) => {
+    updateSettings({ touchSteer: v });
+    applyBodyFlags();
+  });
   segmented($('opt-hints'), [['1', T.options.on], ['0', T.options.off]], s.controlHints ? '1' : '0', (v) => {
     updateSettings({ controlHints: v === '1' });
     applyBodyFlags();
@@ -632,6 +636,7 @@ function applyBodyFlags() {
   const touch = isTouchDevice();
   $('touch').classList.toggle('hidden', !touch);
   $('key-hints').classList.toggle('hidden', touch || !s.controlHints);
+  document.body.classList.toggle('stick', s.touchSteer === 'stick');
 }
 
 function togglePause() {
@@ -873,6 +878,7 @@ function setupUi() {
   });
 
   // Touch-Tasten
+  input.bindStick($('t-stick'), $('t-knob'));
   input.bindTouchButton($('t-left'), 'links');
   input.bindTouchButton($('t-right'), 'rechts');
   input.bindTouchButton($('t-jump'), 'springen');
